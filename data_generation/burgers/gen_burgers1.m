@@ -1,5 +1,7 @@
+% Load chebfun package
+addpath('~/projects/emulator/src/MATLAB/chebfun')
 % number of realizations to generate
-N = 1;
+N = 256;
 
 % parameters for the Gaussian random field
 gamma = 2.5;
@@ -10,7 +12,7 @@ sigma = 7^(2);
 visc = 1/1000;
 
 % grid size
-s = 1024;
+s = 512;
 steps = 200;
 
 
@@ -26,10 +28,10 @@ x = linspace(0,1,s+1);
 for j=1:N
     u0 = GRF1(s/2, 0, gamma, tau, sigma, "periodic");
     u = burgers1(u0, tspan, s, visc);
-    
+
     u0eval = u0(x);
     input(j,:) = u0eval(1:end-1);
-    
+
     if steps == 1
         output(j,:) = u.values;
     else
@@ -37,6 +39,11 @@ for j=1:N
             output(j,k,:) = u{k}.values;
         end
     end
-    
+
     disp(j);
 end
+
+a=input;
+u=output;
+
+save('burgers_data_R10.mat')
