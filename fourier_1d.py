@@ -3,7 +3,7 @@
 This file is the Fourier Neural Operator for 1D problem such as the (time-independent) Burgers equation discussed in Section 5.1 in the [paper](https://arxiv.org/pdf/2010.08895.pdf).
 """
 
-
+import logging
 import numpy as np
 import torch
 import torch.nn as nn
@@ -240,9 +240,10 @@ def main(args):
         test_l2 /= ntest
 
         t2 = default_timer()
-        print(ep, t2-t1, train_mse, train_l2, test_l2)
+        logging.info("Epoch: {}, time: {:.2f}, train_mse: {:.4f}, train_l2: {:.4f}, test_l2: {:.4f}".format(ep, t2-t1, train_mse, train_l2, test_l2))
 
     torch.save(model, args.model_fp)
+    logging.info("Saved model at {}".format(args.model_fp))
     pred = torch.zeros(y_test.shape)
     index = 0
     test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=1, shuffle=False)
@@ -255,7 +256,7 @@ def main(args):
             pred[index] = out
 
             test_l2 += myloss(out.view(1, -1), y.view(1, -1)).item()
-            print(index, test_l2)
+            logging.info("Test index {}, test_l2: {:.4f}".format(index, test_l2))
             index = index + 1
 
     scipy.io.savemat(args.preds_fp, mdict={'pred': pred.cpu().numpy()})
@@ -271,4 +272,9 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=500)
 
     args = parser.parse_args()
+    fmt = "%(asctime)s:FNO: %(levelname)s - %(message)s"
+    time_fmt = '%Y-%m-%d %H:%M:%S' if with_date else '%H:%M:%S'
+    logging.basicConfig(level=logging.INFO,
+                        format=fmt,
+                        datefmt=time_fmt)
     main(args)
