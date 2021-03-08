@@ -2,11 +2,11 @@
 addpath('~/projects/emulator/src/MATLAB/chebfun')
 % number of realizations to generate
 % N = 1100;
-fprintf("N is set to %i \n", N);
-fprintf("seed is set to %i \n", seed);
-fprintf("s is set to %i \n", s);
-fprintf("Output filepath:\n");
-fprintf(out_fp);
+fprintf(1, "N is set to %i \n", N);
+fprintf(1, "seed is set to %i \n", seed);
+fprintf(1, "s is set to %i \n", s);
+fprintf(1, "Output filepath:\n");
+fprintf(1, out_fp);
 
 % set random seed
 rng(seed);
