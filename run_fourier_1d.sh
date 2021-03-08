@@ -14,8 +14,5 @@ conda activate basis_emulators
 
 python fourier_1d.py \
 --data_fp data/burgers_data_R10.mat \
---model_fp models/fourier_1d_small_data \
---preds_fp preds/fourier_1d_small_data.mat \
---subsample_rate 1 \
---grid_size 512 \
---epochs 20
+--model_fp models/fourier_1d_model \
+--preds_fp preds/fourier_1d_preds.mat

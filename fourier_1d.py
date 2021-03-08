@@ -273,7 +273,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     fmt = "%(asctime)s:FNO: %(levelname)s - %(message)s"
-    time_fmt = '%Y-%m-%d %H:%M:%S' if with_date else '%H:%M:%S'
+    time_fmt = '%Y-%m-%d %H:%M:%S'
     logging.basicConfig(level=logging.INFO,
                         format=fmt,
                         datefmt=time_fmt)
