@@ -1,4 +1,6 @@
-print(seed);
-print(N);
+fprintf("SEED\n");
+fprintf("%i\n", seed);
+fprintf("N\n");
+fprintf("%i\n", N);
 rng(seed);
-randn(N,1);
+x = randn(N,1)

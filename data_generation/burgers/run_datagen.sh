@@ -9,4 +9,5 @@ echo "SLURM Info: Job name:${SLURM_JOB_NAME}"
 echo "    JOB ID: ${SLURM_JOB_ID}"
 echo "    Host list: ${SLURM_JOB_NODELIST}"
 
-matlab < gen_burgers1.m
+matlab -batch "N=???;seed=???;out_fp=???;gen_burgers1;"
+
