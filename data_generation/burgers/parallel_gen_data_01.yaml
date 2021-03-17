@@ -1,0 +1,46 @@
+---
+definitions:
+  command: "matlab -batch"
+  template: parallel_gen_data.jinja
+
+  copy_to_item: true
+
+  default_arguments:
+    logs_folder: logs/GRF1
+    partition: "general"
+    mem: "8000M"
+
+  submission:
+    !SLURMQueue
+      jobs_folder: jobs/GRF1/
+      job_name_key: job_name
+      #      fake_submission: true
+
+  constants:
+    data_dir: &DATA_LOC "'/home/meliao/projects/fourier_neural_operator/data/2021-03-17_Burgers_data_GRF1/"
+
+arguments:
+
+  - !Scalar { name: N, prefix: "N=", value: 100}
+  - !Scalar { name: s, prefix: "s=", value: 8192}
+  - !Scalar {name: gen_burgers, value: "gen_burgers1"}
+
+# This range is np.linspace(0.005, 0.5, 10)
+  - !Range
+    name: seed
+    start: 0
+    end: 11
+    prefix: "seed="
+    metadata_rules: [ !SaveValueInMetadata { path: seed } ]
+
+  - !ArgumentFromMetadata
+    name: out_fp
+    prefix: "out_fp="
+    prepend: *DATA_LOC
+    format_rule: "Burgers_data_seed_{seed}.mat'"
+    sources: [ {path: seed, destination: seed} ]
+
+  - !ArgumentFromMetadata
+    name: job_name
+    format_rule: "{seed}_data_gen"
+    sources: [ {path: seed, destination: seed} ]
