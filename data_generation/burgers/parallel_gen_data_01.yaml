@@ -6,18 +6,18 @@ definitions:
   copy_to_item: true
 
   default_arguments:
-    logs_folder: logs/
+    logs_folder: logs/GRF1
     partition: "general"
     mem: "8000M"
 
   submission:
     !SLURMQueue
-      jobs_folder: jobs/
+      jobs_folder: jobs/GRF1/
       job_name_key: job_name
       #      fake_submission: true
 
   constants:
-    data_dir: &DATA_LOC "'/home/meliao/projects/fourier_neural_operator/data/2021-03-08_Burgers_data/"
+    data_dir: &DATA_LOC "'/home/meliao/projects/fourier_neural_operator/data/2021-03-17_Burgers_data_GRF1/"
 
 arguments:
 

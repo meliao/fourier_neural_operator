@@ -31,10 +31,15 @@ else
     output = zeros(N, steps, s);
 end
 
+% Timespan: [0, 2]
 tspan = linspace(0,1,steps+1);
 x = linspace(0,1,s+1);
 for j=1:N
-    u0 = GRF1(s/2, 0, gamma, tau, sigma, "periodic");
+    % k, random uniform over {1, 2, 3, 4} is the bandlimit
+    k = randi([1 4]);
+    % phi, random uniform over [0,2 *pi] is the phase shift
+    phi = 2*pi*rand;
+    u0 = chebfun(@(x) -sin(k*2*pi*x + phi), [0, 1]);
     u = burgers1(u0, tspan, s, visc);
 
     u0eval = u0(x);

@@ -1,15 +1,7 @@
 % Load chebfun package
 addpath('~/projects/emulator/src/MATLAB/chebfun')
 % number of realizations to generate
-% N = 1100;
-fprintf(1, "N is set to %i \n", N);
-fprintf(1, "seed is set to %i \n", seed);
-fprintf(1, "s is set to %i \n", s);
-fprintf(1, "Output filepath:\n");
-fprintf(1, out_fp);
-
-% set random seed
-rng(seed);
+N = 12;
 
 % parameters for the Gaussian random field
 gamma = 2.5;
@@ -17,10 +9,10 @@ tau = 7;
 sigma = 7^(2);
 
 % viscosity
-visc = 1/5000;
+visc = 1/1000;
 
 % grid size
-% s = 1024;
+s = 512;
 steps = 200;
 
 
@@ -52,7 +44,7 @@ for j=1:N
 end
 
 a=input;
-u=output(:,end,:);
-u = reshape(u, [N,s]);
+u=output;
 
-save(out_fp, 'a', 'u')
+save('00_test_burgers_data_R10.mat')
+
