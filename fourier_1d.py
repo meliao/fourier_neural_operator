@@ -212,6 +212,8 @@ def main(args):
         train_l2 = 0
         for x, y in train_loader:
             x, y = x.cuda(), y.cuda()
+            print("TRAINING X SHAPE: {}".format(x.size()))
+            print("TRAINING Y SHAPE: {}".format(y.size()))
 
             optimizer.zero_grad()
             out = model(x)

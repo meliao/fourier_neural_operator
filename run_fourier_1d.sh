@@ -2,8 +2,8 @@
 
 #SBATCH --job-name=fourier_1d_small_data
 #SBATCH --partition=contrib-gpu
-#SBATCH --output=/home-nfs/meliao/projects/fourier_neural_operator/fourier_1d_small_data.out
-#SBATCH --error=/home-nfs/meliao/projects/fourier_neural_operator/fourier_1d_small_data.err
+#SBATCH --output=/home-nfs/meliao/projects/fourier_neural_operator/00_fourier_1d.out
+#SBATCH --error=/home-nfs/meliao/projects/fourier_neural_operator/00_fourier_1d.err
 echo "`date` Starting Job"
 echo "SLURM Info: Job name:${SLURM_JOB_NAME}"
 echo "    JOB ID: ${SLURM_JOB_ID}"
