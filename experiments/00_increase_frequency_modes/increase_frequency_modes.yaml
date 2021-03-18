@@ -46,5 +46,5 @@ arguments:
 
   - !ArgumentFromMetadata
     name: job_name
-    format_rule: "freq_{freq}_burgers_1d.mat"
+    format_rule: "freq_{freq}_burgers_1d"
     sources: [ {path: freq, destination: freq}]

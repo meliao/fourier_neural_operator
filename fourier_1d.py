@@ -338,7 +338,6 @@ def main(args):
 
 
 
-
     # I'm doing aggregate error reporting in numpy
     pred_test = pred.cpu().numpy()
     y_test = y_test.cpu().numpy()
@@ -353,7 +352,7 @@ def main(args):
     else:
         logging.info("No results_fp specified, so here are the results")
         logging.info(results_dd)
-        
+
     logging.info("Finished")
 
 
