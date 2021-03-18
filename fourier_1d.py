@@ -271,12 +271,12 @@ def main(args):
 
     l2_errors = np.linalg.norm(errors, ord=2, axis=1)
     mean_l2 = l2_errors.mean()
-    l2_norms = np.linalg.norm(y, ord=2, axis=1)
+    l2_norms = np.linalg.norm(y_test, ord=2, axis=1)
     l2_normalized_errors = np.divide(l2_errors, l2_norms)
     mean_l2_norm = l2_normalized_errors.mean()
 
     linf_errors = np.linalg.norm(errors, ord=np.inf, axis=1)
-    linf_norms = np.linalg.norm(y, ord=np.inf, axis=1)
+    linf_norms = np.linalg.norm(y_test, ord=np.inf, axis=1)
     linf_normalized_errors = np.divide(linf_errors, linf_norms)
     mean_linf_norm = linf_normalized_errors.mean()
 
