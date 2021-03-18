@@ -167,7 +167,7 @@ def main(args):
     step_size = 100
     gamma = 0.5
 
-    modes = 16
+    modes = args.freq_modes
     width = 64
 
     ################################################################
@@ -263,6 +263,30 @@ def main(args):
 
     scipy.io.savemat(args.preds_fp, mdict={'pred': pred.cpu().numpy()})
 
+    # I'm doing aggregate error reporting in numpy
+    pred = pred.cpu().numpy()
+    y_test = y_test.cpu().numpy()
+
+    errors = pred - y_test
+
+    l2_errors = np.linalg.norm(errors, ord=2, axis=1)
+    mean_l2 = l2_errors.mean()
+    l2_norms = np.linalg.norm(y, ord=2, axis=1)
+    l2_normalized_errors = np.divide(l2_errors, l2_norms)
+    mean_l2_norm = l2_normalized_errors.mean()
+
+    linf_errors = np.linalg.norm(errors, ord=np.inf, axis=1)
+    linf_norms = np.linalg.norm(y, ord=np.inf, axis=1)
+    linf_normalized_errors = np.divide(linf_errors, linf_norms)
+    mean_linf_norm = linf_normalized_errors.mean()
+
+    logging.info("MEAN L2 ERRORS: {}".format(mean_l2))
+    logging.info("MEAN NORMALIZED L2 ERRORS: {}".format(mean_l2_norm))
+    logging.info("MEAN NORMALIZED L_INF ERRORS: {}".format(mean_linf_norm))
+
+    logging.info("Finished")
+
+
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
@@ -272,6 +296,7 @@ if __name__ == '__main__':
     parser.add_argument('--subsample_rate', type=int, default=2**3)
     parser.add_argument('--grid_size', type=int, default=2**13)
     parser.add_argument('--epochs', type=int, default=500)
+    parser.add_argument('--freq_modes', type=int, default=16)
 
     args = parser.parse_args()
     fmt = "%(asctime)s:FNO: %(levelname)s - %(message)s"

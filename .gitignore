@@ -1,0 +1,21 @@
+# Anything from HPC job submission
+logs/*
+jobs/*
+
+*.err
+*.out
+
+# Any stray data files
+*.mat
+*.png
+data/*
+plots/*
+models/*
+preds/*
+
+# Pycache
+__pycache__/*
+
+# Jupyter Notebook stuff
+.ipynb_checkpoints/*
+*.ipynb

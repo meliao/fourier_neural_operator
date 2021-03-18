@@ -1,0 +1,23 @@
+#!/bin/bash
+
+#SBATCH --job-name={{ job_name }}
+#SBATCH --time={{ job_walltime }}
+#SBATCH --partition={{ partition }}
+#SBATCH --output={{ logs_folder }}/{{ job_name }}.out
+#SBATCH --error={{ logs_folder }}/{{ job_name }}.err
+
+echo "`date` Starting Job"
+echo "SLURM Info: Job name:${SLURM_JOB_NAME}"
+echo "    JOB ID: ${SLURM_JOB_ID}"
+echo "    Host list: ${SLURM_JOB_NODELIST}"
+
+source  ~/conda_init.sh
+cd ~/projects/fourier_neural_operator/
+conda activate basis_emulators
+
+
+{{ command }} \
+{{ data_fp }} \
+{{ model_fp }} \
+{{ preds_fp }} \
+{{ frequency_modes }}
