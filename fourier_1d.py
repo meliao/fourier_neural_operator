@@ -146,6 +146,44 @@ class Net1d(nn.Module):
 
         return c
 
+def write_result_to_file(fp, missing_str='', **trial):
+    """Write a line to a tab-separated file saving the results of a single
+        trial.
+
+    Parameters
+    ----------
+    fp : str
+        Output filepath
+    missing_str : str
+        (Optional) What to print in the case of a missing trial value
+    **trial : dict
+        One trial result. Keys will become the file header
+    Returns
+    -------
+    None
+
+    """
+    header_lst = list(trial.keys())
+    header_lst.sort()
+    if not os.path.isfile(fp):
+        header_line = "\t".join(header_lst) + "\n"
+        with open(fp, 'w') as f:
+            f.write(header_line)
+    trial_lst = [str(trial.get(i, missing_str)) for i in header_lst]
+    trial_line = "\t".join(trial_lst) + "\n"
+    with open(fp, 'a') as f:
+        f.write(trial_line)
+
+def find_normalized_errors(preds, y, ord):
+    diffs = preds - y
+
+    raw_errors = np.linalg.norm(diffs, ord=ord, axis=1)
+    raw_mean = raw_errors.mean()
+    norms = np.linalg.norm(y, ord=ord, axis=1)
+    normalized_errors = np.divide(raw_errors, norms)
+    normalized_mean = normalized_errors.mean()
+    return raw_mean, normalized_mean
+
 def main(args):
 
     ################################################################
@@ -169,6 +207,16 @@ def main(args):
 
     modes = args.freq_modes
     width = 64
+
+    # results_dd stores trial results and metadata. It will be printed as
+    # a single line to a text file at args.results_fp
+    results_dd = {'ntrain': ntrain,
+                    'ntest': ntest,
+                    'sub': sub,
+                    'effective_grid_size': s,
+                    'epochs': epochs,
+                    'modes': modes,
+                    'width': width}
 
     ################################################################
     # read data
@@ -212,8 +260,8 @@ def main(args):
         train_l2 = 0
         for x, y in train_loader:
             x, y = x.cuda(), y.cuda()
-            print("TRAINING X SHAPE: {}".format(x.size()))
-            print("TRAINING Y SHAPE: {}".format(y.size()))
+            # print("TRAINING X SHAPE: {}".format(x.size()))
+            # print("TRAINING Y SHAPE: {}".format(y.size()))
 
             optimizer.zero_grad()
             out = model(x)
@@ -246,6 +294,31 @@ def main(args):
 
     torch.save(model, args.model_fp)
     logging.info("Saved model at {}".format(args.model_fp))
+
+    # Compute training errors:
+    train_pred = torch.zeros(y_train.shape)
+    train_y = torch.zeros(y_train.shape)
+    idx = 0
+    with torch.no_grad():
+        for x, y in train_loader:
+            x = x.cuda()
+            y = y.cuda()
+            out = model(x)
+
+            pred[idx] = out
+            train_y[idx] = y
+
+            idx += 1
+
+    train_pred = train_pred.cpu().numpy()
+    train_y = train_y.cpu().numpy()
+
+    (results_dd['train_l2_errors'], results_dd['train_l2_normalized_errors']
+    = find_normalized_errors(train_pred, train_y, 2))
+    (results_dd['train_linf_errors'], results_dd['train_linf_normalized_errors']
+    = find_normalized_errors(train_pred, train_y, np.inf))
+
+
     pred = torch.zeros(y_test.shape)
     index = 0
     test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=1, shuffle=False)
@@ -263,27 +336,24 @@ def main(args):
 
     scipy.io.savemat(args.preds_fp, mdict={'pred': pred.cpu().numpy()})
 
+
+
+
     # I'm doing aggregate error reporting in numpy
-    pred = pred.cpu().numpy()
+    pred_test = pred.cpu().numpy()
     y_test = y_test.cpu().numpy()
 
-    errors = pred - y_test
-
-    l2_errors = np.linalg.norm(errors, ord=2, axis=1)
-    mean_l2 = l2_errors.mean()
-    l2_norms = np.linalg.norm(y, ord=2, axis=1)
-    l2_normalized_errors = np.divide(l2_errors, l2_norms)
-    mean_l2_norm = l2_normalized_errors.mean()
-
-    linf_errors = np.linalg.norm(errors, ord=np.inf, axis=1)
-    linf_norms = np.linalg.norm(y, ord=np.inf, axis=1)
-    linf_normalized_errors = np.divide(linf_errors, linf_norms)
-    mean_linf_norm = linf_normalized_errors.mean()
-
-    logging.info("MEAN L2 ERRORS: {}".format(mean_l2))
-    logging.info("MEAN NORMALIZED L2 ERRORS: {}".format(mean_l2_norm))
-    logging.info("MEAN NORMALIZED L_INF ERRORS: {}".format(mean_linf_norm))
-
+    (results_dd['test_l2_errors'], results_dd['test_l2_normalized_errors']
+    = find_normalized_errors(pred_test, y_test, 2))
+    (results_dd['test_linf_errors'], results_dd['test_linf_normalized_errors']
+    = find_normalized_errors(pred_test, y_test, np.inf))
+    if args.results_fp is not None:
+        write_result_to_file(args.results_fp, **results_dd)
+        logging.info("Wrote results to {}".format(args.results_fp))
+    else:
+        logging.info("No results_fp specified, so here are the results")
+        logging.info(results_dd)
+        
     logging.info("Finished")
 
 
@@ -293,6 +363,9 @@ if __name__ == '__main__':
     parser.add_argument('--data_fp')
     parser.add_argument('--model_fp')
     parser.add_argument('--preds_fp')
+    parser.add_argument('--results_fp', default=None,
+                        help='If specified, trial results will be dumped into \
+                                one line of this text file')
     parser.add_argument('--subsample_rate', type=int, default=2**3)
     parser.add_argument('--grid_size', type=int, default=2**13)
     parser.add_argument('--epochs', type=int, default=500)
