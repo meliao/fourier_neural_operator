@@ -9,6 +9,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+# import torch.fft as fft
 from torch.nn.parameter import Parameter
 import matplotlib.pyplot as plt
 import scipy.io
@@ -24,7 +25,52 @@ torch.manual_seed(0)
 np.random.seed(0)
 
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+#loss function with rel/abs Lp loss
+class LpLoss(object):
+    def __init__(self, d=2, p=2, size_average=True, reduction=True):
+        super(LpLoss, self).__init__()
+
+        #Dimension and Lp-norm type are postive
+        assert d > 0 and p > 0
+
+        self.d = d
+        self.p = p
+        self.reduction = reduction
+        self.size_average = size_average
+
+    def abs(self, x, y):
+        num_examples = x.size()[0]
+
+        #Assume uniform mesh
+        h = 1.0 / (x.size()[1] - 1.0)
+
+        all_norms = (h**(self.d/self.p))*torch.norm(x.view(num_examples,-1) - y.view(num_examples,-1), self.p, 1)
+
+        if self.reduction:
+            if self.size_average:
+                return torch.mean(all_norms)
+            else:
+                return torch.sum(all_norms)
+
+        return all_norms
+
+    def rel(self, x, y):
+        num_examples = x.size()[0]
+
+        diff_norms = torch.norm(x.reshape(num_examples,-1) - y.reshape(num_examples,-1), self.p, 1)
+        y_norms = torch.norm(y.reshape(num_examples,-1), self.p, 1)
+
+        if self.reduction:
+            if self.size_average:
+                return torch.mean(diff_norms/y_norms)
+            else:
+                return torch.sum(diff_norms/y_norms)
+
+        return diff_norms/y_norms
+
+    def __call__(self, x, y):
+        return self.rel(x, y)
+
 
 # reading data
 class MatReader(object):
@@ -246,6 +292,10 @@ def find_normalized_errors(preds, y, ord):
 
 def main(args):
 
+    # Figure out CUDA
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    logging.info("Running computation on device: {}".format(device))
+
     ################################################################
     #  configurations
     ################################################################
@@ -302,8 +352,8 @@ def main(args):
     test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=batch_size, shuffle=False)
 
     # model
-    model = Net1d(modes, width).cuda()
-    print("Number of model parameters:", model.count_params())
+    model = Net1d(modes, width).to(device)
+    logging.info("Number of model parameters: %i" % model.count_params())
 
 
     ################################################################
@@ -319,7 +369,7 @@ def main(args):
         train_mse = 0
         train_l2 = 0
         for x, y in train_loader:
-            x, y = x.cuda(), y.cuda()
+            x, y = x.to(device), y.to(device)
             # print("TRAINING X SHAPE: {}".format(x.size()))
             # print("TRAINING Y SHAPE: {}".format(y.size()))
 
@@ -340,7 +390,7 @@ def main(args):
         test_l2 = 0.0
         with torch.no_grad():
             for x, y in test_loader:
-                x, y = x.cuda(), y.cuda()
+                x, y = x.to(device), y.to(device)
 
                 out = model(x)
                 test_l2 += myloss(out.view(batch_size, -1), y.view(batch_size, -1)).item()
@@ -361,11 +411,11 @@ def main(args):
     idx = 0
     with torch.no_grad():
         for x, y in train_loader:
-            x = x.cuda()
-            y = y.cuda()
+            x = x.to(device)
+            y = y.to(device)
             out = model(x)
-            print(out.size())
-            print(train_pred[idx].size())
+            # print(out.size())
+            # print(train_pred[idx].size())
 
             train_pred[batch_size*idx: batch_size*(idx + 1)] = out
             train_y[batch_size*idx: batch_size*(idx + 1)] = y
@@ -385,7 +435,7 @@ def main(args):
     with torch.no_grad():
         for x, y in test_loader:
             test_l2 = 0
-            x, y = x.cuda(), y.cuda()
+            x, y = x.to(device), y.to(device)
 
             out = model(x)
             pred[index] = out
