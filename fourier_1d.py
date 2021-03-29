@@ -4,6 +4,7 @@ This file is the Fourier Neural Operator for 1D problem such as the (time-indepe
 """
 
 import logging
+import os
 import numpy as np
 import torch
 import torch.nn as nn
@@ -304,19 +305,19 @@ def main(args):
             x = x.cuda()
             y = y.cuda()
             out = model(x)
+            print(out.size())
+            print(train_pred[idx].size())
 
-            pred[idx] = out
-            train_y[idx] = y
+            train_pred[batch_size*idx: batch_size*(idx + 1)] = out
+            train_y[batch_size*idx: batch_size*(idx + 1)] = y
 
             idx += 1
 
     train_pred = train_pred.cpu().numpy()
     train_y = train_y.cpu().numpy()
 
-    (results_dd['train_l2_errors'], results_dd['train_l2_normalized_errors']
-    = find_normalized_errors(train_pred, train_y, 2))
-    (results_dd['train_linf_errors'], results_dd['train_linf_normalized_errors']
-    = find_normalized_errors(train_pred, train_y, np.inf))
+    results_dd['train_l2_errors'], results_dd['train_l2_normalized_errors'] = find_normalized_errors(train_pred, train_y, 2)
+    results_dd['train_linf_errors'], results_dd['train_linf_normalized_errors'] = find_normalized_errors(train_pred, train_y, np.inf)
 
 
     pred = torch.zeros(y_test.shape)
@@ -342,10 +343,8 @@ def main(args):
     pred_test = pred.cpu().numpy()
     y_test = y_test.cpu().numpy()
 
-    (results_dd['test_l2_errors'], results_dd['test_l2_normalized_errors']
-    = find_normalized_errors(pred_test, y_test, 2))
-    (results_dd['test_linf_errors'], results_dd['test_linf_normalized_errors']
-    = find_normalized_errors(pred_test, y_test, np.inf))
+    results_dd['test_l2_errors'], results_dd['test_l2_normalized_errors'] = find_normalized_errors(pred_test, y_test, 2)
+    results_dd['test_linf_errors'], results_dd['test_linf_normalized_errors'] = find_normalized_errors(pred_test, y_test, np.inf)
     if args.results_fp is not None:
         write_result_to_file(args.results_fp, **results_dd)
         logging.info("Wrote results to {}".format(args.results_fp))

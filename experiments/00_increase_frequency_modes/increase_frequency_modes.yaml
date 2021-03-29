@@ -14,16 +14,18 @@ definitions:
     !SLURMQueue
       jobs_folder: experiments/00_increase_frequency_modes/jobs
       job_name_key: job_name
-#      fake_submission: true
+ #     fake_submission: true
 
   constants:
     data_loc: &DATA_LOC "~/projects/fourier_neural_operator/data/2021-03-17_training_Burgers_data_GRF1.mat"
     save_dir: &SAVE_DIR "~/projects/fourier_neural_operator/experiments/00_increase_frequency_modes/models"
     preds_dir: &PREDS_DIR "~/projects/fourier_neural_operator/experiments/00_increase_frequency_modes/preds"
+    results_fp: &RESULTS_FP "~/projects/fourier_neural_operator/experiments/00_increase_frequency_modes/experiment_results.txt"
 
 arguments:
 
   - !Scalar { name: data_fp, value: *DATA_LOC, prefix: "--data_fp" }
+  - !Scalar { name: results_fp, value: *RESULTS_FP, prefix: "--results_fp" }
   - !Range
     name: frequency_modes
     values: [2, 4, 8, 16, 32, 64, 124, 256]
