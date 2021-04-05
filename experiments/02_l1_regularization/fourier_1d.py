@@ -325,6 +325,7 @@ def main(args):
                     'sub': sub,
                     'effective_grid_size': s,
                     'epochs': epochs,
+                    'l1_lambda': args.l1_lambda,
                     'modes': modes,
                     'width': width}
 
@@ -382,9 +383,9 @@ def main(args):
 
             # If we specify a l1 regularization on the weights, we add up the
             # l1 norms of all of the different weights and add this to the loss.
-            l1_reg = torch.tensor(0.)
+            l1_reg = torch.tensor(0.).to(device)
             for param in model.parameters():
-                l1_reg += torch.norm(param)
+                l1_reg += torch.norm(param, p=1)
 
             # Our loss function is Lp loss + regulariztion term
             loss = l2 + args.l1_lambda * l1_reg
