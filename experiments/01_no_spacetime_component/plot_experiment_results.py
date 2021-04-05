@@ -140,123 +140,87 @@ def main(args):
 
     results_df = load_results_df(args.results_df)
     # print(results_df.index.values)
-    results_df_no_reg = load_results_df(args.results_df_without_reg)
+    results_df_with_spacetime = load_results_df(args.results_df_with_spacetime)
     # print(results_df_with_spacetime.index.values)
 
     width_0=0.3
 
-    best_no_weight_test_error = results_df_no_reg.test_l2_normalized_errors.min()
-    for n_modes, df_g in results_df.groupby('modes'):
-        fp_0 = os.path.join(args.plots_dir, 'l2_error_reg_scatter_modes_{}.png'.format(n_modes))
+    # First plot l2 errors across all trial results.
+    fp_0 = os.path.join(args.plots_dir, 'l2_error_frequency_scatter.png')
 
-        t_0 = "{} frequency modes in model".format(n_modes)
-        df_g = df_g.sort_values('l1_lambda', ascending=True)
-        df_g['lambda_str'] = df_g.l1_lambda.astype(str)
+    plt.plot(results_df.index.values+width_0/2,
+                results_df.train_l2_normalized_errors.values,
+                '^',
+                color='blue',
+                markersize=10)
+    plt.plot(results_df.index.values+width_0/2,
+                results_df.test_l2_normalized_errors.values,
+                'v',
+                color='blue',
+                markersize=10)
+    plt.vlines(results_df.index.values+width_0/2,
+                results_df.test_l2_normalized_errors.values,
+                results_df.train_l2_normalized_errors.values,
+                color='blue',
+                label='without spacetime')
+    plt.plot(results_df_with_spacetime.index.values-width_0/2,
+                results_df_with_spacetime.test_l2_normalized_errors.values,
+                'v',
+                color='red',
+                markersize=10)
+    plt.plot(results_df_with_spacetime.index.values-width_0/2,
+                results_df_with_spacetime.train_l2_normalized_errors.values,
+                '^',
+                color='red',
+                markersize=10)
+    plt.vlines(results_df_with_spacetime.index.values-width_0/2,
+                results_df_with_spacetime.test_l2_normalized_errors.values,
+                results_df_with_spacetime.train_l2_normalized_errors.values,
+                color='red',
+                label='with spacetime')
+    # plt.bar(x=results_df_with_spacetime.index.values-width_0/2 ,
+    #         width=width_0,
+    #         height=results_df_with_spacetime.train_l2_normalized_errors.values,
+    #         bottom=results_df_with_spacetime.test_l2_normalized_errors.values,
+    #         label='with spacetime', alpha=0.5)
+    plt.legend()
+    plt.title("Train/test normalized $L_2$ errors across frequencies")
+    plt.xticks(results_df.index.values,
+                labels=results_df.freq_str.values)
+    plt.xlabel('Number of Frequency Modes', size=13)
+    plt.ylabel('Normalized $L_2$ Error', size=13)
+    plt.savefig(fp_0)
+    plt.clf()
+    logging.info("Saved plot to {}".format(fp_0))
 
-        plt.plot(df_g.lambda_str.values,
-                    df_g.test_l2_normalized_errors.values,
-                    'v',
-                    color='blue',
-                    markersize=10,
-                    label='test error')
-        plt.plot(df_g.lambda_str.values,
-                    df_g.train_l2_normalized_errors.values,
-                    '^',
-                    color='blue',
-                    markersize=10,
-                    label='train error')
-        plt.hlines(best_no_weight_test_error, 0., 7.5, linestyles='dashed',
-                    label='best test error, 8\nfrequency modes')
-
-
-
-        plt.yscale('log')
-
-        plt.title(t_0)
-        plt.xlabel('$L_1$ regularization weight')
-        plt.ylabel("Normalized error")
-
-        plt.legend()
-        plt.savefig(fp_0)
-        plt.clf()
-    #
-    #
-    # # First plot l2 errors across all trial results.
-    # fp_0 = os.path.join(args.plots_dir, 'l2_error_frequency_scatter.png')
-    #
-    # plt.plot(results_df.index.values+width_0/2,
-    #             results_df.train_l2_normalized_errors.values,
-    #             '^',
-    #             color='blue',
-    #             markersize=10)
-    # plt.plot(results_df.index.values+width_0/2,
-    #             results_df.test_l2_normalized_errors.values,
-    #             'v',
-    #             color='blue',
-    #             markersize=10)
-    # plt.vlines(results_df.index.values+width_0/2,
-    #             results_df.test_l2_normalized_errors.values,
-    #             results_df.train_l2_normalized_errors.values,
-    #             color='blue',
-    #             label='without spacetime')
-    # plt.plot(results_df_with_spacetime.index.values-width_0/2,
-    #             results_df_with_spacetime.test_l2_normalized_errors.values,
-    #             'v',
-    #             color='red',
-    #             markersize=10)
-    # plt.plot(results_df_with_spacetime.index.values-width_0/2,
-    #             results_df_with_spacetime.train_l2_normalized_errors.values,
-    #             '^',
-    #             color='red',
-    #             markersize=10)
-    # plt.vlines(results_df_with_spacetime.index.values-width_0/2,
-    #             results_df_with_spacetime.test_l2_normalized_errors.values,
-    #             results_df_with_spacetime.train_l2_normalized_errors.values,
-    #             color='red',
-    #             label='with spacetime')
-    # # plt.bar(x=results_df_with_spacetime.index.values-width_0/2 ,
-    # #         width=width_0,
-    # #         height=results_df_with_spacetime.train_l2_normalized_errors.values,
-    # #         bottom=results_df_with_spacetime.test_l2_normalized_errors.values,
-    # #         label='with spacetime', alpha=0.5)
+    # # L_inf errors across frequencies
+    # fp_1 = os.path.join(args.plots_dir, 'linf_error_frequency_scatter.png')
+    # plt.plot(results_df.freq_str.values, results_df.test_linf_normalized_errors.values, '.',
+    #             label='test')
+    # plt.plot(results_df.freq_str.values, results_df.train_linf_normalized_errors.values, '.',
+    #             label='train')
     # plt.legend()
-    # plt.title("Train/test normalized $L_2$ errors across frequencies")
-    # plt.xticks(results_df.index.values,
-    #             labels=results_df.freq_str.values)
+    # plt.title("Normalized $L_\\infty$ errors across frequencies")
     # plt.xlabel('Number of Frequency Modes', size=13)
-    # plt.ylabel('Normalized $L_2$ Error', size=13)
-    # plt.savefig(fp_0)
+    # plt.ylabel('Normalized $L_\\infty$ Error', size=13)
+    # plt.savefig(fp_1)
     # plt.clf()
-    # logging.info("Saved plot to {}".format(fp_0))
+    # logging.info("Saved plot to {}".format(fp_1))
     #
-    # # # L_inf errors across frequencies
-    # # fp_1 = os.path.join(args.plots_dir, 'linf_error_frequency_scatter.png')
-    # # plt.plot(results_df.freq_str.values, results_df.test_linf_normalized_errors.values, '.',
-    # #             label='test')
-    # # plt.plot(results_df.freq_str.values, results_df.train_linf_normalized_errors.values, '.',
-    # #             label='train')
-    # # plt.legend()
-    # # plt.title("Normalized $L_\\infty$ errors across frequencies")
-    # # plt.xlabel('Number of Frequency Modes', size=13)
-    # # plt.ylabel('Normalized $L_\\infty$ Error', size=13)
-    # # plt.savefig(fp_1)
-    # # plt.clf()
-    # # logging.info("Saved plot to {}".format(fp_1))
-    # #
-    # X, y = load_data(args.data_fp)
-    # for freq in results_df.modes:
-    #     k = "{:03d}_freq_modes".format(freq)
-    #     preds_fp = os.path.join(args.preds_dir, 'freq_{}_burgers_1d.mat'.format(freq))
-    #     plot_experiment(k, X, y, preds_fp, args.plots_dir)
+    X, y = load_data(args.data_fp)
+    for freq in results_df.modes:
+        k = "{:03d}_freq_modes".format(freq)
+        preds_fp = os.path.join(args.preds_dir, 'freq_{}_burgers_1d.mat'.format(freq))
+        plot_experiment(k, X, y, preds_fp, args.plots_dir)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-data_fp", default="/home/owen/projects/fourier_neural_operator/data/2021-03-17_training_Burgers_data_GRF1.mat")
-    parser.add_argument("-plots_dir", default="/home/owen/projects/fourier_neural_operator/experiments/02_l1_regularization/plots")
-    parser.add_argument("-preds_dir", default="/home/owen/projects/fourier_neural_operator/experiments/02_l1_regularization/preds")
-    parser.add_argument("-results_df", default="/home/owen/projects/fourier_neural_operator/experiments/02_l1_regularization/experiment_results.txt")
-    parser.add_argument("-results_df_without_reg", default="/home/owen/projects/fourier_neural_operator/experiments/00_increase_frequency_modes/experiment_results.txt")
+    parser.add_argument("-plots_dir", default="/home/owen/projects/fourier_neural_operator/experiments/01_no_spacetime_component/plots")
+    parser.add_argument("-preds_dir", default="/home/owen/projects/fourier_neural_operator/experiments/01_no_spacetime_component/preds")
+    parser.add_argument("-results_df", default="/home/owen/projects/fourier_neural_operator/experiments/01_no_spacetime_component/experiment_results.txt")
+    parser.add_argument("-results_df_with_spacetime", default="/home/owen/projects/fourier_neural_operator/experiments/00_increase_frequency_modes/experiment_results.txt")
 
     args = parser.parse_args()
 
