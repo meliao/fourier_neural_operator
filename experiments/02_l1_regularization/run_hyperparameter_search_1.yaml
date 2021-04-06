@@ -1,0 +1,70 @@
+---
+definitions:
+  command: "python fourier_1d.py"
+  template: run_burgers.jinja
+
+  copy_to_item: true
+
+  default_arguments:
+    job_walltime: "4:00:00"
+    logs_folder: logs
+    partition: "contrib-gpu"
+
+  submission:
+    !SLURMQueue
+      jobs_folder: jobs
+      job_name_key: job_name
+ #     fake_submission: true
+
+  constants:
+    data_loc: &DATA_LOC "~/projects/fourier_neural_operator/data/2021-03-17_training_Burgers_data_GRF1.mat"
+    save_dir: &SAVE_DIR "~/projects/fourier_neural_operator/experiments/02_l1_regularization/models"
+    preds_dir: &PREDS_DIR "~/projects/fourier_neural_operator/experiments/02_l1_regularization/preds"
+    results_fp: &RESULTS_FP "~/projects/fourier_neural_operator/experiments/02_l1_regularization/hyperparameter_search_results_1.txt"
+
+arguments:
+
+  - !Scalar { name: data_fp, value: *DATA_LOC, prefix: "--data_fp" }
+  - !Scalar { name: results_fp, value: *RESULTS_FP, prefix: "--results_fp" }
+
+  - !Range
+    name: frequency_modes
+    values: [256]
+    prefix: "--freq_modes"
+    metadata_rules: [ !SaveValueInMetadata { path: freq } ]
+
+    # This is np.linspace(1e-07, 5e-06, 20)
+  - !Range
+    name: l1_reg
+    prefix: "--l1_lambda"
+    values: [7.50000000e-07, 8.18965517e-07, 8.87931034e-07, 9.56896552e-07,
+       1.02586207e-06, 1.09482759e-06, 1.16379310e-06, 1.23275862e-06,
+       1.30172414e-06, 1.37068966e-06, 1.43965517e-06, 1.50862069e-06,
+       1.57758621e-06, 1.64655172e-06, 1.71551724e-06, 1.78448276e-06,
+       1.85344828e-06, 1.92241379e-06, 1.99137931e-06, 2.06034483e-06,
+       2.12931034e-06, 2.19827586e-06, 2.26724138e-06, 2.33620690e-06,
+       2.40517241e-06, 2.47413793e-06, 2.54310345e-06, 2.61206897e-06,
+       2.68103448e-06, 2.75000000e-06]
+    metadata_rules: [ !SaveValueInMetadata { path: lambda } ]
+
+  - !ArgumentFromMetadata
+    name: model_fp
+    prefix: "--model_fp"
+    prepend: *SAVE_DIR
+    format_rule: "freq_{freq}_l1-reg_{lambda}_burgers_1d"
+    sources: [ {path: freq, destination: freq},
+                {path: lambda, destination: lambda}]
+
+  - !ArgumentFromMetadata
+    name: preds_fp
+    prefix: "--preds_fp"
+    prepend: *PREDS_DIR
+    format_rule: "freq_{freq}_l1-reg_{lambda}_burgers_1d.mat"
+    sources: [ {path: freq, destination: freq},
+                {path: lambda, destination: lambda}]
+
+  - !ArgumentFromMetadata
+    name: job_name
+    format_rule: "freq_{freq}_l1-reg_{lambda}_burgers_1d"
+    sources: [ {path: freq, destination: freq},
+                {path: lambda, destination: lambda}]
