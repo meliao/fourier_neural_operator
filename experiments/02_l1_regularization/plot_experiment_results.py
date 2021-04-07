@@ -83,7 +83,7 @@ def plot_experiment(key, X, y, preds_fp, plots_out):
     preds = load_preds(preds_fp)
 
     # Compute and report average errors
-    # l2_normalized_errors = find_normalized_errors(preds, y, 2)
+    l2_normalized_errors = find_normalized_errors(preds, y, 2)
     #
     # decreasing_l2_error_indices = np.flip(np.argsort(l2_normalized_errors))
     # for i in range(10):
@@ -94,34 +94,34 @@ def plot_experiment(key, X, y, preds_fp, plots_out):
     #     plot_one_testcase(X, y, preds, idx, t, fp)
 
     # Specially-chosen test cases for all of the frequencies
-    # for i in [64]:
-    #     l2_err = l2_normalized_errors[i]
-    #     t = "{} test sample {}: norm. l2 error {:.4f}".format(key, i, l2_err)
-    #     fp = os.path.join(plots_out, '{}_test_sample_{}.png'.format(key, i))
-    #     plot_one_testcase(X, y, preds, i, t, fp)
+    for i in [1,2,3,4]:
+        l2_err = l2_normalized_errors[i]
+        t = "{} test sample {}: norm. l2 error {:.4f}".format(key, i, l2_err)
+        fp = os.path.join(plots_out, '{}_test_sample_{}.png'.format(key, i))
+        plot_one_testcase(X, y, preds, i, t, fp)
 
     # Truncate the Fourier modes and recompute errors. In the next section,
     # we will be using 2**k Fourier modes.
-    fourier_results = pd.DataFrame(columns=['k', 'num_modes', 'l2_norm_error'])
-    for k in range(1, 11):
-        num_modes = int(2**k)
-        truncated_preds = keep_k_fourier_modes(preds, num_modes)
-        l2_norm_error = find_normalized_errors(truncated_preds, y, 2).mean()
-        fourier_results = fourier_results.append({'k':k, 'num_modes': num_modes, 'l2_norm_error': l2_norm_error}, ignore_index=True)
-        for i in [1, 64, 75, 86]:
-            t = "{} test sample {}: truncated to {} frequency modes".format(key, i, num_modes)
-            fp = os.path.join(plots_out, '{}_truncated_pred_{}_test_sample_{}.png'.format(key, num_modes, i))
-            plot_truncated_testcase(X, y, preds, truncated_preds, i, t, fp)
-
-    plt.plot(fourier_results.k.values, fourier_results.l2_norm_error.values, '.')
-    plt.xticks(fourier_results.k.values, labels=["%i" % 2**j for j in fourier_results.k.values])
-    plt.xlabel("Fourier modes kept", size=13)
-    plt.ylabel("$L_2$ Normalized Error", size=13)
-    t = "{}: Errors after truncation to {} modes".format(key, num_modes)
-    plt.title(t)
-    fp_2 = os.path.join(plots_out, '{}_errors_after_truncation.png'.format(key))
-    plt.savefig(fp_2)
-    plt.clf()
+    # fourier_results = pd.DataFrame(columns=['k', 'num_modes', 'l2_norm_error'])
+    # for k in range(1, 11):
+    #     num_modes = int(2**k)
+    #     truncated_preds = keep_k_fourier_modes(preds, num_modes)
+    #     l2_norm_error = find_normalized_errors(truncated_preds, y, 2).mean()
+    #     fourier_results = fourier_results.append({'k':k, 'num_modes': num_modes, 'l2_norm_error': l2_norm_error}, ignore_index=True)
+    #     for i in [1, 64, 75, 86]:
+    #         t = "{} test sample {}: truncated to {} frequency modes".format(key, i, num_modes)
+    #         fp = os.path.join(plots_out, '{}_truncated_pred_{}_test_sample_{}.png'.format(key, num_modes, i))
+    #         plot_truncated_testcase(X, y, preds, truncated_preds, i, t, fp)
+    #
+    # plt.plot(fourier_results.k.values, fourier_results.l2_norm_error.values, '.')
+    # plt.xticks(fourier_results.k.values, labels=["%i" % 2**j for j in fourier_results.k.values])
+    # plt.xlabel("Fourier modes kept", size=13)
+    # plt.ylabel("$L_2$ Normalized Error", size=13)
+    # t = "{}: Errors after truncation to {} modes".format(key, num_modes)
+    # plt.title(t)
+    # fp_2 = os.path.join(plots_out, '{}_errors_after_truncation.png'.format(key))
+    # plt.savefig(fp_2)
+    # plt.clf()
 
 def load_results_df(fp):
     d = pd.read_table(fp)
@@ -151,7 +151,9 @@ def main(args):
 
         t_0 = "{} frequency modes in model".format(n_modes)
         df_g = df_g.sort_values('l1_lambda', ascending=True)
-        df_g['lambda_str'] = df_g.l1_lambda.astype(str)
+        df_g['lambda_str'] = [ "{:.3e}".format(i) for i in df_g.l1_lambda]
+
+        df_g = df_g[df_g['l1_lambda'] < 2.75e-06]
 
         plt.plot(df_g.lambda_str.values,
                     df_g.test_l2_normalized_errors.values,
@@ -165,20 +167,34 @@ def main(args):
                     color='blue',
                     markersize=10,
                     label='train error')
-        plt.hlines(best_no_weight_test_error, 0., 7.5, linestyles='dashed',
+        plt.hlines(best_no_weight_test_error, 0., df_g.shape[0] + 0.5, linestyles='dashed',
                     label='best test error, 8\nfrequency modes')
+        plt.xticks([i for i in range(len(df_g))],
+                    labels=df_g.lambda_str.values,
+                    rotation=45,
+                    ha='right')
+        # plt.tight_layout()
+        plt.ylim(top=0.12)
 
 
-
-        plt.yscale('log')
+        # plt.yscale('log')
 
         plt.title(t_0)
         plt.xlabel('$L_1$ regularization weight')
         plt.ylabel("Normalized error")
-
         plt.legend()
+        plt.tight_layout()
         plt.savefig(fp_0)
         plt.clf()
+
+        X, y = load_data(args.data_fp)
+        for l1_lambda in df_g.l1_lambda:
+            k = "{:03d}_freq_modes_l1_{:03e}".format(n_modes, l1_lambda)
+            preds_fp = os.path.join(args.preds_dir, 'freq_{}_l1-reg_{}_burgers_1d.mat'.format(n_modes, l1_lambda))
+            try:
+                plot_experiment(k, X, y, preds_fp, args.plots_dir)
+            except FileNotFoundError:
+                logging.warning("Could not find {}".format(preds_fp))
     #
     #
     # # First plot l2 errors across all trial results.
@@ -243,11 +259,7 @@ def main(args):
     # # plt.clf()
     # # logging.info("Saved plot to {}".format(fp_1))
     # #
-    # X, y = load_data(args.data_fp)
-    # for freq in results_df.modes:
-    #     k = "{:03d}_freq_modes".format(freq)
-    #     preds_fp = os.path.join(args.preds_dir, 'freq_{}_burgers_1d.mat'.format(freq))
-    #     plot_experiment(k, X, y, preds_fp, args.plots_dir)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

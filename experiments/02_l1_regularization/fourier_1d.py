@@ -191,10 +191,10 @@ class SimpleBlock1d(nn.Module):
         self.conv1 = SpectralConv1d(self.width, self.width, self.modes1)
         self.conv2 = SpectralConv1d(self.width, self.width, self.modes1)
         self.conv3 = SpectralConv1d(self.width, self.width, self.modes1)
-        # self.w0 = nn.Conv1d(self.width, self.width, 1)
-        # self.w1 = nn.Conv1d(self.width, self.width, 1)
-        # self.w2 = nn.Conv1d(self.width, self.width, 1)
-        # self.w3 = nn.Conv1d(self.width, self.width, 1)
+        self.w0 = nn.Conv1d(self.width, self.width, 1)
+        self.w1 = nn.Conv1d(self.width, self.width, 1)
+        self.w2 = nn.Conv1d(self.width, self.width, 1)
+        self.w3 = nn.Conv1d(self.width, self.width, 1)
 
 
         self.fc1 = nn.Linear(self.width, 128)
@@ -206,23 +206,23 @@ class SimpleBlock1d(nn.Module):
         x = x.permute(0, 2, 1)
 
         x1 = self.conv0(x)
-        # x2 = self.w0(x)
-        # x = x1 + x2
+        x2 = self.w0(x)
+        x = x1 + x2
         x = F.relu(x1)
 
         x1 = self.conv1(x)
-        # x2 = self.w1(x)
-        # x = x1 + x2
+        x2 = self.w1(x)
+        x = x1 + x2
         x = F.relu(x1)
 
         x1 = self.conv2(x)
-        # x2 = self.w2(x)
-        # x = x1 + x2
+        x2 = self.w2(x)
+        x = x1 + x2
         x = F.relu(x1)
 
         x1 = self.conv3(x)
-        # x2 = self.w3(x)
-        # x = x1 + x2
+        x2 = self.w3(x)
+        x = x1 + x2
 
         x = x1.permute(0, 2, 1)
         x = self.fc1(x)
