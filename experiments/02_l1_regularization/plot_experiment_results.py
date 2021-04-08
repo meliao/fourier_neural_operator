@@ -153,7 +153,7 @@ def main(args):
         df_g = df_g.sort_values('l1_lambda', ascending=True)
         df_g['lambda_str'] = [ "{:.3e}".format(i) for i in df_g.l1_lambda]
 
-        df_g = df_g[df_g['l1_lambda'] < 2.75e-06]
+        # df_g = df_g[df_g['l1_lambda'] < 2.75e-06]
 
         plt.plot(df_g.lambda_str.values,
                     df_g.test_l2_normalized_errors.values,
@@ -174,7 +174,7 @@ def main(args):
                     rotation=45,
                     ha='right')
         # plt.tight_layout()
-        plt.ylim(top=0.12)
+        # plt.ylim(top=0.12)
 
 
         # plt.yscale('log')
@@ -187,14 +187,14 @@ def main(args):
         plt.savefig(fp_0)
         plt.clf()
 
-        X, y = load_data(args.data_fp)
-        for l1_lambda in df_g.l1_lambda:
-            k = "{:03d}_freq_modes_l1_{:03e}".format(n_modes, l1_lambda)
-            preds_fp = os.path.join(args.preds_dir, 'freq_{}_l1-reg_{}_burgers_1d.mat'.format(n_modes, l1_lambda))
-            try:
-                plot_experiment(k, X, y, preds_fp, args.plots_dir)
-            except FileNotFoundError:
-                logging.warning("Could not find {}".format(preds_fp))
+        # X, y = load_data(args.data_fp)
+        # for l1_lambda in df_g.l1_lambda:
+        #     k = "{:03d}_freq_modes_l1_{:03e}".format(n_modes, l1_lambda)
+        #     preds_fp = os.path.join(args.preds_dir, 'freq_{}_l1-reg_{}_burgers_1d.mat'.format(n_modes, l1_lambda))
+        #     try:
+        #         plot_experiment(k, X, y, preds_fp, args.plots_dir)
+        #     except FileNotFoundError:
+        #         logging.warning("Could not find {}".format(preds_fp))
     #
     #
     # # First plot l2 errors across all trial results.
