@@ -5,6 +5,11 @@ import numpy as np
 import logging
 import argparse
 import pandas as pd
+import torch
+import re
+
+
+from fourier_1d import Net1d, SimpleBlock1d, SpectralConv1d, compl_mul1d
 
 
 def find_normalized_errors(preds, y, ord):
@@ -131,6 +136,42 @@ def load_results_df(fp):
     d = d.reset_index()
     return d
 
+def load_model_return_norms(fp, modes=256, width=64):
+    # I'm only considering models with 256 modes. I've only ever used the
+    # pre-set width=64
+    # model = Net1d(modes=modes, width=width)
+    # model.load_state_dict(torch.load(fp, map_location=torch.device('cpu')))
+    model = torch.load(fp, map_location=torch.device('cpu'))
+    assert type(model) == Net1d
+
+
+    l0_norm = torch.tensor(0.)
+    l1_norm = torch.tensor(0.)
+
+    for param in model.parameters():
+        l0_norm += torch.norm(param, p=0)
+        l1_norm += torch.norm(param, p=1)
+
+    return {'model_fp': fp,
+            'l0_norm': l0_norm.detach().numpy(),
+            'l1_norm': l1_norm.detach().numpy()}
+
+def load_weight_norm_df(models_dir):
+    re_obj = re.compile("freq_256_l1-reg_(.*)_burgers_1d")
+    norms_lst = []
+    for f in os.listdir(models_dir):
+        fp = os.path.join(models_dir, f)
+        search_obj = re_obj.search(f)
+        if search_obj:
+            l1_lambda = search_obj.group(1)
+            logging.info("Working on model: {} with l1_lambda: {}".format(f, l1_lambda))
+            norms_dd = load_model_return_norms(fp)
+            norms_dd['l1_lambda'] = float(l1_lambda)
+            norms_lst.append(norms_dd)
+        else:
+            logging.warning("Couldn't match model: {}".format(f))
+    return pd.DataFrame(norms_lst)
+
 
 def main(args):
 
@@ -146,6 +187,7 @@ def main(args):
     width_0=0.3
 
     best_no_weight_test_error = results_df_no_reg.test_l2_normalized_errors.min()
+    best_256_test_error = results_df_no_reg[results_df_no_reg['modes'] == 256].test_l2_normalized_errors.min()
     for n_modes, df_g in results_df.groupby('modes'):
         fp_0 = os.path.join(args.plots_dir, 'l2_error_reg_scatter_modes_{}.png'.format(n_modes))
 
@@ -161,20 +203,22 @@ def main(args):
                     color='blue',
                     markersize=10,
                     label='test error')
-        plt.plot(df_g.lambda_str.values,
-                    df_g.train_l2_normalized_errors.values,
-                    '^',
-                    color='blue',
-                    markersize=10,
-                    label='train error')
+        # plt.plot(df_g.lambda_str.values,
+        #             df_g.train_l2_normalized_errors.values,
+        #             '^',
+        #             color='blue',
+        #             markersize=10,
+        #             label='train error')
         plt.hlines(best_no_weight_test_error, 0., df_g.shape[0] + 0.5, linestyles='dashed',
                     label='best test error, 8\nfrequency modes')
+        plt.hlines(best_256_test_error, 0., df_g.shape[0] + 0.5, linestyles='dotted',
+                    label='best test error, 256\nfrequency modes')
         plt.xticks([i for i in range(len(df_g))],
                     labels=df_g.lambda_str.values,
                     rotation=45,
                     ha='right')
         # plt.tight_layout()
-        # plt.ylim(top=0.12)
+        plt.ylim(top=0.12)
 
 
         # plt.yscale('log')
@@ -195,80 +239,75 @@ def main(args):
         #         plot_experiment(k, X, y, preds_fp, args.plots_dir)
         #     except FileNotFoundError:
         #         logging.warning("Could not find {}".format(preds_fp))
-    #
-    #
-    # # First plot l2 errors across all trial results.
-    # fp_0 = os.path.join(args.plots_dir, 'l2_error_frequency_scatter.png')
-    #
-    # plt.plot(results_df.index.values+width_0/2,
-    #             results_df.train_l2_normalized_errors.values,
-    #             '^',
-    #             color='blue',
-    #             markersize=10)
-    # plt.plot(results_df.index.values+width_0/2,
-    #             results_df.test_l2_normalized_errors.values,
-    #             'v',
-    #             color='blue',
-    #             markersize=10)
-    # plt.vlines(results_df.index.values+width_0/2,
-    #             results_df.test_l2_normalized_errors.values,
-    #             results_df.train_l2_normalized_errors.values,
-    #             color='blue',
-    #             label='without spacetime')
-    # plt.plot(results_df_with_spacetime.index.values-width_0/2,
-    #             results_df_with_spacetime.test_l2_normalized_errors.values,
-    #             'v',
-    #             color='red',
-    #             markersize=10)
-    # plt.plot(results_df_with_spacetime.index.values-width_0/2,
-    #             results_df_with_spacetime.train_l2_normalized_errors.values,
-    #             '^',
-    #             color='red',
-    #             markersize=10)
-    # plt.vlines(results_df_with_spacetime.index.values-width_0/2,
-    #             results_df_with_spacetime.test_l2_normalized_errors.values,
-    #             results_df_with_spacetime.train_l2_normalized_errors.values,
-    #             color='red',
-    #             label='with spacetime')
-    # # plt.bar(x=results_df_with_spacetime.index.values-width_0/2 ,
-    # #         width=width_0,
-    # #         height=results_df_with_spacetime.train_l2_normalized_errors.values,
-    # #         bottom=results_df_with_spacetime.test_l2_normalized_errors.values,
-    # #         label='with spacetime', alpha=0.5)
-    # plt.legend()
-    # plt.title("Train/test normalized $L_2$ errors across frequencies")
-    # plt.xticks(results_df.index.values,
-    #             labels=results_df.freq_str.values)
-    # plt.xlabel('Number of Frequency Modes', size=13)
-    # plt.ylabel('Normalized $L_2$ Error', size=13)
-    # plt.savefig(fp_0)
-    # plt.clf()
-    # logging.info("Saved plot to {}".format(fp_0))
-    #
-    # # # L_inf errors across frequencies
-    # # fp_1 = os.path.join(args.plots_dir, 'linf_error_frequency_scatter.png')
-    # # plt.plot(results_df.freq_str.values, results_df.test_linf_normalized_errors.values, '.',
-    # #             label='test')
-    # # plt.plot(results_df.freq_str.values, results_df.train_linf_normalized_errors.values, '.',
-    # #             label='train')
-    # # plt.legend()
-    # # plt.title("Normalized $L_\\infty$ errors across frequencies")
-    # # plt.xlabel('Number of Frequency Modes', size=13)
-    # # plt.ylabel('Normalized $L_\\infty$ Error', size=13)
-    # # plt.savefig(fp_1)
-    # # plt.clf()
-    # # logging.info("Saved plot to {}".format(fp_1))
-    # #
+    weight_norm_df = load_weight_norm_df(args.models_dir)
+    weight_norm_df['lambda_str'] = ["{:.03e}".format(i) for i in weight_norm_df.l1_lambda.values]
+    print(weight_norm_df.head())
 
+    fp_8 = "/home-nfs/meliao/projects/fourier_neural_operator/experiments/00_increase_frequency_modes/models/freq_8_burgers_1d"
+    mode_8_norms = load_model_return_norms(fp_8, modes=8)
+
+    fp_256 = "/home-nfs/meliao/projects/fourier_neural_operator/experiments/00_increase_frequency_modes/models/freq_256_burgers_1d"
+    mode_256_norms = load_model_return_norms(fp_256, modes=256)
+
+    fp_l0_scatter = os.path.join(args.plots_dir, 'scatter_l0_weight_norms.png')
+    l0_title = "$L_0$ model weight norms, 256 frequency modes"
+
+    plt.plot(weight_norm_df.lambda_str.values,
+                weight_norm_df.l0_norm.values,
+                '.',
+                color='blue',
+                markersize=10,
+                label='l_0 norm')
+    plt.hlines(mode_8_norms['l0_norm'], 0., weight_norm_df.shape[0] - 0.5, linestyles='dashed',
+                label='unregularized 8\nfrequency modes')
+    plt.hlines(mode_256_norms['l0_norm'], 0., weight_norm_df.shape[0] - 0.5, linestyles='dotted',
+                label='unregularized 256\nfrequency modes')
+    plt.xticks([i for i in range(len(weight_norm_df))],
+                labels=weight_norm_df.lambda_str.values,
+                rotation=45,
+                ha='right')
+    plt.title(l0_title)
+    plt.xlabel('$L_1$ regularization weight')
+    plt.ylabel("$L_0$ model weight norm")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(fp_l0_scatter)
+    plt.clf()
+
+    fp_l1_scatter = os.path.join(args.plots_dir, 'scatter_l1_weight_norms.png')
+    l1_title = "$L_1$ model weight norms, 256 frequency modes"
+
+    plt.plot(weight_norm_df.lambda_str.values,
+                weight_norm_df.l1_norm.values,
+                '.',
+                color='blue',
+                markersize=10,
+                label='l_1 norm')
+    plt.hlines(mode_8_norms['l1_norm'], 0., weight_norm_df.shape[0] - 0.5, linestyles='dashed',
+                label='unregularized 8\nfrequency modes')
+    plt.hlines(mode_256_norms['l1_norm'], 0., weight_norm_df.shape[0] - 0.5, linestyles='dotted',
+                label='unregularized 256\nfrequency modes')
+    plt.xticks([i for i in range(len(weight_norm_df))],
+                labels=weight_norm_df.lambda_str.values,
+                rotation=45,
+                ha='right')
+    plt.title(l1_title)
+    plt.xlabel('$L_1$ regularization weight')
+    plt.ylabel("$L_1$ model weight norm")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(fp_l1_scatter)
+    plt.clf()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("-data_fp", default="/home/owen/projects/fourier_neural_operator/data/2021-03-17_training_Burgers_data_GRF1.mat")
-    parser.add_argument("-plots_dir", default="/home/owen/projects/fourier_neural_operator/experiments/02_l1_regularization/plots")
-    parser.add_argument("-preds_dir", default="/home/owen/projects/fourier_neural_operator/experiments/02_l1_regularization/preds")
-    parser.add_argument("-results_df", default="/home/owen/projects/fourier_neural_operator/experiments/02_l1_regularization/experiment_results.txt")
-    parser.add_argument("-results_df_without_reg", default="/home/owen/projects/fourier_neural_operator/experiments/00_increase_frequency_modes/experiment_results.txt")
+    parser.add_argument("-data_fp", default="/home-nfs/meliao/projects/fourier_neural_operator/data/2021-03-17_training_Burgers_data_GRF1.mat")
+    parser.add_argument("-plots_dir", default="/home-nfs/meliao/projects/fourier_neural_operator/experiments/02_l1_regularization/plots")
+    parser.add_argument("-preds_dir", default="~/projects/fourier_neural_operator/experiments/02_l1_regularization/preds")
+    parser.add_argument("-models_dir", default="/home-nfs/meliao/projects/fourier_neural_operator/experiments/02_l1_regularization/models")
+    parser.add_argument("-results_df", default="~/projects/fourier_neural_operator/experiments/02_l1_regularization/hyperparameter_search_results.txt")
+    parser.add_argument("-results_df_without_reg", default="~/projects/fourier_neural_operator/experiments/00_increase_frequency_modes/experiment_results.txt")
 
     args = parser.parse_args()
 
