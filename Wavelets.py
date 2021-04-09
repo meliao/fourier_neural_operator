@@ -21,9 +21,9 @@ class IHaarDWT(nn.Module):
     def __init__(self, level=1):
         super().__init__()
         self.c_filter = torch.tensor(np.divide(np.array([1., 1.]),
-                                                np.sqrt(2))).reshape((2,1))
+                                                np.sqrt(2)), dtype=torch.float).reshape((2,1))
         self.d_filter = torch.tensor(np.divide(np.array([1., -1.]),
-                                                np.sqrt(2))).reshape((2,1))
+                                                np.sqrt(2)), dtype=torch.float).reshape((2,1))
         self.filter_len = 2
         self.level = level
 
@@ -78,9 +78,9 @@ class HaarDWT(nn.Module):
     def __init__(self, level=1):
         super().__init__()
         self.c_filter = torch.tensor(np.divide(np.array([1., 1.]),
-                                                np.sqrt(2))).reshape((1,1,2))
+                                                np.sqrt(2)), dtype=torch.float).reshape((1,1,2))
         self.d_filter = torch.tensor(np.divide(np.array([1., -1.]),
-                                                np.sqrt(2))).reshape((1,1,2))
+                                                np.sqrt(2)), dtype=torch.float).reshape((1,1,2))
         self.filter_len = 2
         self.level = level
 

@@ -62,6 +62,13 @@ class TestHaarDWT(unittest.TestCase):
         IDWT_obj = Wavelets.IHaarDWT()
         self.assertIsInstance(IDWT_obj, Wavelets.IHaarDWT)
 
+    def test_bad_input_length_DWT(self):
+        DWT_obj = Wavelets.HaarDWT()
+        x = torch.zeros((1,1,1+1024))
+        with self.assertRaises(ValueError):
+            y = DWT_obj(x)
+    
+
     def testHaarDWTLevel1_deterministic(self):
         DWT_obj = Wavelets.HaarDWT()
         for k, v in self.d_arrays.items():
