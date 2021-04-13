@@ -1,0 +1,53 @@
+---
+definitions:
+  command: "python -m experiments.03_use_Haar_DWT.run_haarDWT_network"
+  template: run_burgers.jinja
+
+  copy_to_item: true
+
+  default_arguments:
+    job_walltime: "4:00:00"
+    logs_folder: experiments/03_use_Haar_DWT/logs
+    partition: "contrib-gpu"
+
+  submission:
+    !SLURMQueue
+      jobs_folder: experiments/03_use_Haar_DWT/
+      job_name_key: job_name
+ #     fake_submission: true
+
+  constants:
+    data_loc: &DATA_LOC "~/projects/fourier_neural_operator/data/2021-03-17_training_Burgers_data_GRF1.mat"
+    save_dir: &MODEL_DIR "~/projects/fourier_neural_operator/experiments/03_use_Haar_DWT/models"
+    preds_dir: &PREDS_DIR "~/projects/fourier_neural_operator/experiments/03_use_Haar_DWT/preds"
+    results_fp: &RESULTS_FP "~/projects/fourier_neural_operator/experiments/03_use_Haar_DWT/results/varied_keep_experiment.txt"
+
+arguments:
+
+  - !Scalar { name: data_fp, value: *DATA_LOC, prefix: "--data_fp" }
+  - !Scalar { name: results_fp, value: *RESULTS_FP, prefix: "--results_fp" }
+
+  - !Range
+    name: keep
+    values: [0, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
+    prefix: "--keep"
+    metadata_rules: [ !SaveValueInMetadata { path: keep } ]
+
+  - !ArgumentFromMetadata
+    name: model_fp
+    prefix: "--model_fp"
+    prepend: *MODEL_DIR
+    format_rule: "dwt_Haar_keep_{keep}_burgers_1d"
+    sources: [ {path: keep, destination: keep}]
+
+  - !ArgumentFromMetadata
+    name: preds_fp
+    prefix: "--preds_fp"
+    prepend: *PREDS_DIR
+    format_rule: "dwt_Haar_keep_{keep}_burgers_1d.mat"
+    sources: [ {path: keep, destination: keep}]
+
+  - !ArgumentFromMetadata
+    name: job_name
+    format_rule: "dwt_Haar_keep_{keep}_burgers_1d"
+    sources: [ {path: keep, destination: keep}]
