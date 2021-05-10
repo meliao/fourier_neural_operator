@@ -1,0 +1,47 @@
+---
+definitions:
+  command: "matlab -batch"
+  template: multiple_time_vals_gen_data.jinja
+
+  copy_to_item: true
+
+  default_arguments:
+    logs_folder: logs/multiple_time_values/
+    partition: "general"
+    mem: "8000M"
+
+  submission:
+    !SLURMQueue
+      jobs_folder: jobs/multiple_time_values/
+      job_name_key: job_name
+      #      fake_submission: true
+
+  constants:
+    data_dir: &DATA_LOC "'/home/meliao/projects/fourier_neural_operator/data/2021-05-10_Burgers_data/"
+
+arguments:
+
+  - !Scalar { name: N, prefix: "N=", value: 100}
+  - !Scalar { name: s, prefix: "s=", value: 1024}
+  - !Scalar { name: tmax, prefix: "tmax=", value: 5}
+  - !Scalar { name: n_tsteps, prefix: "n_tsteps=", value: 200}
+  - !Scalar {name: gen_burgers, value: "multiple_time_values_gen_burgers"}
+
+  - !Range
+    name: seed
+    start: 55
+    end: 66
+    prefix: "seed="
+    metadata_rules: [ !SaveValueInMetadata { path: seed } ]
+
+  - !ArgumentFromMetadata
+    name: out_fp
+    prefix: "out_fp="
+    prepend: *DATA_LOC
+    format_rule: "Burgers_data_seed_{seed}.mat'"
+    sources: [ {path: seed, destination: seed} ]
+
+  - !ArgumentFromMetadata
+    name: job_name
+    format_rule: "{seed}_data_gen"
+    sources: [ {path: seed, destination: seed} ]
