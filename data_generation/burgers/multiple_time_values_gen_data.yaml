@@ -21,11 +21,11 @@ definitions:
 
 arguments:
 
-  - !Scalar { name: N, prefix: "N=", value: 100}
-  - !Scalar { name: s, prefix: "s=", value: 1024}
-  - !Scalar { name: tmax, prefix: "tmax=", value: 5}
-  - !Scalar { name: n_tsteps, prefix: "n_tsteps=", value: 200}
-  - !Scalar {name: gen_burgers, value: "multiple_time_values_gen_burgers"}
+  - !Scalar { name: N, prefix: "N=", value: 10}
+  - !Scalar { name: s, prefix: "s=", value: 8192}
+  - !Scalar { name: tmax, prefix: "tmax=", value: 2}
+  - !Scalar { name: n_tsteps, prefix: "n_tsteps=", value: 400}
+  - !Scalar {name: gen_burgers, value: "gen_burgers_multiple_time_values"}
 
   - !Range
     name: seed

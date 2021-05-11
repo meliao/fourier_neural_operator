@@ -12,4 +12,4 @@ echo "    JOB ID: ${SLURM_JOB_ID}"
 echo "    Host list: ${SLURM_JOB_NODELIST}"
 
 {{ command }} \
-"{{ N }};{{ seed }};{{ s }};{{ out_fp }};{{ gen_burgers }};"
+"{{ N }};{{ seed }};{{ s }};{{ n_tsteps }};{{ tmax }};{{ out_fp }};{{ gen_burgers }};"
