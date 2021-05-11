@@ -33,7 +33,7 @@ else
     output = zeros(N, n_tsteps, s);
 end
 
-tspan = linspace(0,5,n_tsteps+1);
+tspan = linspace(0,tmax,n_tsteps+1);
 x = linspace(0,1,s+1);
 for j=1:N
     u0 = GRF1(s/2, 0, gamma, tau, sigma, "periodic");
