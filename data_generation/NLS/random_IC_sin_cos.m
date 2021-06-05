@@ -1,11 +1,11 @@
-function out_cfun = random_IC_sin_cos(X_bounds, n_fourier_coef, seed)
+function out_cfun = random_IC_sin_cos(X_bounds, n_fourier_coef)
 %     Generates a random periodic function with controlled frequency on a
 %     discrete set of points.
 %     Inputs:
 %         n_fourier_coef : int. The frequency. This corresponds to the number
 %                                 of Fourier coefficients that will be saved.
 %         seed : int. The random seed for the RNG
-    rng(seed);
+    % rng(seed);
     rdata = randn(n_fourier_coef, 4);
     ic_func = @(x) 0;
     for i = 1:n_fourier_coef
