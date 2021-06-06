@@ -1,0 +1,24 @@
+#!/bin/bash
+
+#SBATCH --job-name={{ job_name }}
+#SBATCH --partition={{ partition }}
+#SBATCH --mem={{ mem }}
+#SBATCH --output={{ logs_folder }}/{{ job_name }}.out
+#SBATCH --error={{ logs_folder }}/{{ job_name }}.err
+
+echo "`date` Starting Job"
+echo "SLURM Info: Job name:${SLURM_JOB_NAME}"
+echo "    JOB ID: ${SLURM_JOB_ID}"
+echo "    Host list: ${SLURM_JOB_NODELIST}"
+
+{{ command }} \
+"""{{ MAX_IC_FREQ }};
+{{ N_X_POINTS }};
+{{ N_TRAINING_EXAMPLES }};
+{{ TMAX }};
+{{ STEP_SIZE }};
+{{ GAMMA }};
+{{ SEED }};
+{{ FP_OUT }};
+{{ PLOT_PRE }};
+{{ gen_data_discrete_times_parallel }};"""

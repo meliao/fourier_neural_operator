@@ -5,16 +5,17 @@ addpath('~/projects/emulator/src/MATLAB/chebfun');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% SET TRAINING DATA PARAMETERS
 X_BOUNDS = [-pi pi];
-MAX_IC_FREQ = 10;
+MAX_IC_FREQ = 5;
 N_X_POINTS = 1024;
-N_TRAINING_EXAMPLES = 10;
+N_TRAINING_EXAMPLES = 3;
 TMAX = 10;
 STEP_SIZE = 0.001;
 GAMMA = -1;
-FP_OUT = '~/2021_Spring_Courses/Becca_Reading_Group/NLS_solver/data/2021-06-04_Matlab_NLS_data.mat';
+SEED = 0;
+FP_OUT = '~/projects/fourier_neural_operator/data/2021-06-04_Matlab_NLS_data.mat';
 
 
-PLOT_DIR = '~/projects/fourier_neural_operator/data/2021-06-04_training_data_test_plots/';
+PLOT_PRE = '~/projects/fourier_neural_operator/data/2021-06-04_training_data_test_plots/';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% SET UP TIME / SPACE GRIDS
@@ -26,7 +27,7 @@ x_grid = linspace(X_BOUNDS(1), X_BOUNDS(2), N_X_POINTS);
 output = zeros(N_TRAINING_EXAMPLES, TMAX+1, N_X_POINTS);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% GENERATE RANDOM ICs
+%% GENERATE RANDOM ICs, SOLVE NLS, RECORD RESULTS
 rng(SEED);
 for i=1:N_TRAINING_EXAMPLES
   IC = random_IC_sin_cos(X_BOUNDS, MAX_IC_FREQ);
@@ -37,11 +38,12 @@ for i=1:N_TRAINING_EXAMPLES
     soln_vals(j,:) = u{j}.values;
   end
   fname = strcat('NLS_randomIC_', num2str(i));
-  fp_plot = strcat(PLOT_DIR, fname, '.png');
+  fp_plot = strcat(PLOT_PRE, fname, '.png');
   imwrite(abs(soln_vals), fp_plot);
-  fprintf('Making plot ', fname, '\n');
+  fprintf(1, 'Making plot %s\n', fname);
   for j=0:TMAX
-    j_idx = 1 + (j*n_tsteps_per_unit_time)
+    j_idx = 1 + (j*n_tsteps_per_unit_time);
     output(i,j+1,:) = u{j_idx}.values;
   end
 end
+save(FP_OUT, 'output');

@@ -9,8 +9,8 @@ fprintf(1, 'TMAX is %i \n', TMAX);
 fprintf(1, 'STEP_SIZE is %f \n', STEP_SIZE);
 fprintf(1, 'GAMMA is %f \n', GAMMA);
 fprintf(1, 'SEED is %i \n', SEED);
-fprintf(1, 'FP_OUT is %i \n', FP_OUT);
-fprintf(1, 'PLOT_PRE is %i \n', PLOT_PRE);
+fprintf(1, 'FP_OUT is %s \n', FP_OUT);
+fprintf(1, 'PLOT_PRE is %s \n', PLOT_PRE);
 
 
 
