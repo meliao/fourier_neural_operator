@@ -243,6 +243,8 @@ def main(args):
 
         t2 = default_timer()
         logging.info("Epoch: {}, time: {:.2f}, train_mse: {:.4f}".format(ep, t2-t1, train_mse))
+    
+    results_dd['train_mse'] = train_mse
 
     ################################################################
     # create and evaluate test predictions
@@ -270,9 +272,9 @@ def main(args):
     logging.info("Saving predictions to {}".format(args.preds_fp))
 
     test_mse = test_mse / len(test_loader)
-    results_dd['test_mse'] = test_mse.numpy()
+    results_dd['test_mse'] = test_mse.cpu().numpy()
 
-    results_dd['test_l2_normalized_errors'] = l2_normalized_error(pred, y_test).numpy()
+    results_dd['test_l2_normalized_errors'] = l2_normalized_error(pred.to('cpu'), y_test.to('cpu')).cpu().numpy()
     if args.results_fp is not None:
         write_result_to_file(args.results_fp, **results_dd)
         logging.info("Wrote results to {}".format(args.results_fp))
