@@ -1,0 +1,52 @@
+---
+definitions:
+  command: "ython -m experiments.05_NLS_composition_baseline.train_models"
+  template: train.jinja
+
+  copy_to_item: true
+
+  default_arguments:
+    job_walltime: "4:00:00"
+    logs_folder: experiments/00_increase_frequency_modes/logs
+    partition: "contrib-gpu"
+
+  submission:
+    !SLURMQueue
+      jobs_folder: experiments/00_increase_frequency_modes/jobs
+      job_name_key: job_name
+ #     fake_submission: true
+
+  constants:
+    data_loc: &DATA_LOC "~/projects/fourier_neural_operator/data/2021-06-07_NLS_two_step_training_dataset.mat"
+    save_dir: &SAVE_DIR "~/projects/fourier_neural_operator/experiments/05_NLS_composition_baseline/models"
+    preds_dir: &PREDS_DIR "~/projects/fourier_neural_operator/experiments/05_NLS_composition_baseline/preds"
+    results_fp: &RESULTS_FP "~/projects/fourier_neural_operator/experiments/05_NLS_composition_baseline/experiment_results.txt"
+
+arguments:
+
+  - !Scalar { name: data_fp, value: *DATA_LOC, prefix: "--data_fp" }
+  - !Scalar { name: results_fp, value: *RESULTS_FP, prefix: "--results_fp" }
+  - !Range
+    name: frequency_modes
+    values: [2, 4, 8, 16, 32, 64, 124, 256]
+    prefix: "--freq_modes"
+    metadata_rules: [ !SaveValueInMetadata { path: freq } ]
+
+  - !ArgumentFromMetadata
+    name: model_fp
+    prefix: "--model_fp"
+    prepend: *SAVE_DIR
+    format_rule: "freq_{freq}_NLS_1d"
+    sources: [ {path: freq, destination: freq}]
+
+  - !ArgumentFromMetadata
+    name: preds_fp
+    prefix: "--preds_fp"
+    prepend: *PREDS_DIR
+    format_rule: "freq_{freq}_NLS_1d.mat"
+    sources: [ {path: freq, destination: freq}]
+
+  - !ArgumentFromMetadata
+    name: job_name
+    format_rule: "freq_{freq}_NLS_1d"
+    sources: [ {path: freq, destination: freq}]
