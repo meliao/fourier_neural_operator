@@ -1,18 +1,18 @@
 ---
 definitions:
-  command: "ython -m experiments.05_NLS_composition_baseline.train_models"
+  command: "python -m experiments.05_NLS_composition_baseline.train_models"
   template: train.jinja
 
   copy_to_item: true
 
   default_arguments:
     job_walltime: "4:00:00"
-    logs_folder: experiments/00_increase_frequency_modes/logs
+    logs_folder: experiments/05_NLS_composition_baseline/logs
     partition: "contrib-gpu"
 
   submission:
     !SLURMQueue
-      jobs_folder: experiments/00_increase_frequency_modes/jobs
+      jobs_folder: experiments/05_NLS_composition_baseline/jobs
       job_name_key: job_name
  #     fake_submission: true
 

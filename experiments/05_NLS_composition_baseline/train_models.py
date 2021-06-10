@@ -212,7 +212,7 @@ def main(args):
     # initialize model and optimizer
     ##################################################################
 
-    model = FNO1dComplex(width=2, modes=2).to(device)
+    model = FNO1dComplex(width=width, modes=modes).to(device)
     optimizer = torch.optim.Adam(model.parameters())
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
 
@@ -245,6 +245,8 @@ def main(args):
         logging.info("Epoch: {}, time: {:.2f}, train_mse: {:.4f}".format(ep, t2-t1, train_mse))
     
     results_dd['train_mse'] = train_mse
+    torch.save(model, args.model_fp)
+    logging.info("Saving model to {}".format(args.model_fp))
 
     ################################################################
     # create and evaluate test predictions
