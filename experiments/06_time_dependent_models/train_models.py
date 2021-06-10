@@ -214,7 +214,7 @@ def main(args):
     ntrain = 1000
     ntest = 100
 
-    batch_size = 2
+    batch_size = 20
     learning_rate = 0.001
 
     epochs = args.epochs
@@ -242,6 +242,8 @@ def main(args):
     x_grid = d['x']
 
     train_dataset = TimeDataSet(usol, t_grid, x_grid, args.max_tsteps)
+    logging.info("Dataset length: {}".format(len(train_dataset)))
+    results_dd['ntrain'] = len(train_dataset)
     # print("N_TSTEPS: {}, N_BATCHES: {}, MAX_TSTEPS: {}, DATA_LEN: {}".format(train_dataset.n_tsteps,
                                                                                 # train_dataset.n_batches,
                                                                                 # train_dataset.max_tsteps,
