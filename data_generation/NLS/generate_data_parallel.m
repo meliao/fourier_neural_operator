@@ -52,3 +52,5 @@ end
 x = x_grid;
 t = time_grid;
 save(FP_OUT, 'output', 'x', 't');
+fprintf(1, 'Finished \n');
+
