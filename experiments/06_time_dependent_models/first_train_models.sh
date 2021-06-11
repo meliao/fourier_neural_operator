@@ -16,9 +16,9 @@ cd ~/projects/fourier_neural_operator/
 conda activate fourier_neural_operator
 
 python -m experiments.06_time_dependent_models.train_models \
---data_fp data/2021-06-05_NLS_ten_step_testing_dataset.mat \
+--data_fp data/2021-06-10_NLS_data/NLS_data_seed_0.mat \
 --model_fp experiments/06_time_dependent_models/models/first_model \
 --results_fp experiments/06_time_dependent_models/results/first_results.txt \
 --train_df experiments/06_time_dependent_models/results/first_model.txt \
 --freq_modes 8 \
---max_tsteps 4
+--epochs 50
