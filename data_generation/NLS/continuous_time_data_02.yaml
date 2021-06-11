@@ -17,15 +17,15 @@ definitions:
       #      fake_submission: true
 
   constants:
-    data_dir: &DATA_LOC "'/home/meliao/projects/fourier_neural_operator/data/2021-06-10_NLS_data/"
-    plot_dir: &PLOT_DIR "'/home/meliao/projects/fourier_neural_operator/data/2021-06-10_NLS_abs_plots/"
+    data_dir: &DATA_LOC "'/home/meliao/projects/fourier_neural_operator/data/2021-06-11_NLS_data_02/"
+    plot_dir: &PLOT_DIR "'/home/meliao/projects/fourier_neural_operator/data/2021-06-11_NLS_plots_02/"
 
 arguments:
 
   - !Scalar { name: MAX_IC_FREQ, prefix: "MAX_IC_FREQ=", value: 5}
   - !Scalar { name: N_X_POINTS, prefix: "N_X_POINTS=", value: 1024}
   - !Scalar { name: N_TRAINING_EXAMPLES, prefix: "N_TRAINING_EXAMPLES=", value: 10}
-  - !Scalar { name: TMAX, prefix: "TMAX=", value: 2}
+  - !Scalar { name: TMAX, prefix: "TMAX=", value: 1}
   - !Scalar { name: STEP_SIZE, prefix: "STEP_SIZE=", value: 0.001}
   - !Scalar { name: GAMMA, prefix: "GAMMA=", value: -1}
   - !Scalar {name: gen_data_discrete_times_parallel , value: "generate_data_parallel "}

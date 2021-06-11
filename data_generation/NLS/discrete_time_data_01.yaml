@@ -17,8 +17,8 @@ definitions:
       #      fake_submission: true
 
   constants:
-    data_dir: &DATA_LOC "'/home/meliao/projects/fourier_neural_operator/data/2021-06-07_NLS_data/"
-    plot_dir: &PLOT_DIR "'/home/meliao/projects/fourier_neural_operator/data/2021-06-07_NLS_abs_plots/"
+    data_dir: &DATA_LOC "'/home/meliao/projects/fourier_neural_operator/data/2021-06-11_NLS_data_01/"
+    plot_dir: &PLOT_DIR "'/home/meliao/projects/fourier_neural_operator/data/2021-06-11_NLS_plots_01/"
 
 arguments:
 

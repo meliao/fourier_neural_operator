@@ -31,7 +31,7 @@ output = zeros(N_TRAINING_EXAMPLES, n_tsteps, N_X_POINTS);
 %% GENERATE RANDOM ICs, SOLVE NLS, RECORD RESULTS
 rng(SEED);
 for i=1:N_TRAINING_EXAMPLES
-  IC = random_IC_sin_cos(X_BOUNDS, MAX_IC_FREQ);
+  IC = random_IC_exp(X_BOUNDS, MAX_IC_FREQ);
   NLS_Op = NLS_Operator(IC, GAMMA, X_BOUNDS, time_grid);
   u = spin(NLS_Op, N_X_POINTS, STEP_SIZE, 'plot', 'off');
   soln_vals = zeros(n_tsteps, N_X_POINTS);
@@ -53,4 +53,3 @@ x = x_grid;
 t = time_grid;
 save(FP_OUT, 'output', 'x', 't');
 fprintf(1, 'Finished \n');
-
