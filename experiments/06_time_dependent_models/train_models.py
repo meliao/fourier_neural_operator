@@ -135,15 +135,16 @@ class FNO1dComplexTime(nn.Module):
         return torch.view_as_complex(x)
 
 class TimeDataSet(torch.utils.data.Dataset):
-    def __init__(self, X, t_grid, x_grid, max_tsteps_away):
+    def __init__(self, X, t_grid, x_grid):
         super(TimeDataSet, self).__init__()
         self.X = X
         self.t = torch.tensor(t_grid.flatten(), dtype=torch.float)
         self.x_grid = torch.tensor(x_grid, dtype=torch.float).view(-1, 1)
-        self.max_tsteps = max_tsteps_away
+        self.n_tsteps = self.t.shape[0] - 1
         self.n_batches = self.X.shape[0]
-        self.n_tsteps = self.t.shape[0] - self.max_tsteps - 1
-        self.dataset_len = self.n_batches * self.n_tsteps * self.max_tsteps
+        self.time_indices = [ (i,j)  for j in range(self.n_tsteps) for i in range(j)]
+        self.n_t_pairs = len(self.time_indices)
+        self.dataset_len = self.n_t_pairs * self.n_batches
 
     def make_x_train(self, x_in):
         x_in = torch.view_as_real(torch.tensor(x_in, dtype=torch.cfloat))
@@ -151,19 +152,25 @@ class TimeDataSet(torch.utils.data.Dataset):
         return y
 
     def __getitem__(self, idx):
-        e_idx = int(idx % self.max_tsteps)
-        idx = int(idx // self.max_tsteps)
+        idx_original = idx
+        t_idx = int(idx % self.n_t_pairs)
+        idx = int(idx // self.n_t_pairs)
         batch_idx = int(idx % self.n_batches)
-        idx = int(idx // self.n_batches)
-        start_time_idx = int(idx % self.n_tsteps)
-        end_time_idx = e_idx + start_time_idx + 1
+        start_time_idx, end_time_idx = self.time_indices[t_idx]
+        # print("IDX: {}, T_IDX: {}, B_IDX: {}, START_T_IDX: {}, END_T_IDX: {}".format(idx_original, t_idx, batch_idx, start_time_idx, end_time_idx))
         x = self.make_x_train(self.X[batch_idx, start_time_idx]) #.reshape(self.output_shape)
-        y = torch.tensor(self.X[batch_idx, end_time_idx], dtype=torch.cfloat) #.reshape(self.output_shape)
+        y = self.X[batch_idx, end_time_idx] #.reshape(self.output_shape)
         t = self.t[end_time_idx - start_time_idx]
         return x,y,t
 
     def __len__(self):
         return self.dataset_len
+
+    def __repr__(self):
+        return "TimeDataSet with length {}, n_tsteps {}, n_t_pairs {}, n_batches {}".format(self.dataset_len,
+                                                                                            self.n_tsteps,
+                                                                                            self.n_t_pairs,
+                                                                                            self.n_batches)
 
 def write_result_to_file(fp, missing_str='', **trial):
     """Write a line to a tab-separated file saving the results of a single
@@ -214,7 +221,7 @@ def main(args):
     ntrain = 1000
     ntest = 100
 
-    batch_size = 20
+    batch_size = 1024
     learning_rate = 0.001
 
     epochs = args.epochs
@@ -237,17 +244,19 @@ def main(args):
     ################################################################
 
     d = sio.loadmat(args.data_fp)
-    usol = d['output']
-    t_grid = d['t']
+    usol = d['output'][0,:1000+1]
+    usol = np.expand_dims(usol, axis=0)
+    t_grid = d['t'][:,:1000+1]
     x_grid = d['x']
+    logging.info("USOL SHAPE {}, T_GRID SHAPE: {}, X_GRID SHAPE: {}".format(usol.shape, t_grid.shape, x_grid.shape))
 
-    train_dataset = TimeDataSet(usol, t_grid, x_grid, args.max_tsteps)
-    logging.info("Dataset length: {}".format(len(train_dataset)))
+    train_dataset = TimeDataSet(usol, t_grid, x_grid)
+    logging.info("Dataset: {}".format(train_dataset))
     results_dd['ntrain'] = len(train_dataset)
-    # print("N_TSTEPS: {}, N_BATCHES: {}, MAX_TSTEPS: {}, DATA_LEN: {}".format(train_dataset.n_tsteps,
-                                                                                # train_dataset.n_batches,
-                                                                                # train_dataset.max_tsteps,
-                                                                                # train_dataset.dataset_len))
+    # logging.info("N_TSTEPS: {}, N_BATCHES: {}, MAX_TSTEPS: {}, DATA_LEN: {}".format(train_dataset.n_tsteps,
+    #                                                                             train_dataset.n_batches,
+    #                                                                             train_dataset.max_tsteps,
+    #                                                                             train_dataset.dataset_len))
 
     train_data_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     ##################################################################
@@ -323,7 +332,6 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=500)
     parser.add_argument('--freq_modes', type=int, default=16)
     parser.add_argument('--width', type=int, default=64)
-    parser.add_argument('--max_tsteps', type=int)
 
     args = parser.parse_args()
     fmt = "%(asctime)s:FNO: %(levelname)s - %(message)s"
