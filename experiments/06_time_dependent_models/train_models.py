@@ -137,6 +137,7 @@ class FNO1dComplexTime(nn.Module):
 class TimeDataSet(torch.utils.data.Dataset):
     def __init__(self, X, t_grid, x_grid):
         super(TimeDataSet, self).__init__()
+        assert X.shape[1] == t_grid.shape[-1]
         self.X = X
         self.t = torch.tensor(t_grid.flatten(), dtype=torch.float)
         self.x_grid = torch.tensor(x_grid, dtype=torch.float).view(-1, 1)
@@ -244,9 +245,8 @@ def main(args):
     ################################################################
 
     d = sio.loadmat(args.data_fp)
-    usol = d['output'][0,:1000+1]
-    usol = np.expand_dims(usol, axis=0)
-    t_grid = d['t'][:,:1000+1]
+    usol = d['output'][:,::args.time_subsample]
+    t_grid = d['t'][:,::args.time_subsample]
     x_grid = d['x']
     logging.info("USOL SHAPE {}, T_GRID SHAPE: {}, X_GRID SHAPE: {}".format(usol.shape, t_grid.shape, x_grid.shape))
 
@@ -332,6 +332,7 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=500)
     parser.add_argument('--freq_modes', type=int, default=16)
     parser.add_argument('--width', type=int, default=64)
+    parser.add_argument('--time_subsample', type=int, default=1)
 
     args = parser.parse_args()
     fmt = "%(asctime)s:FNO: %(levelname)s - %(message)s"
