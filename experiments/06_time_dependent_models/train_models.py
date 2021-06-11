@@ -237,17 +237,18 @@ def main(args):
     ################################################################
 
     d = sio.loadmat(args.data_fp)
-    usol = d['output']
-    t_grid = d['t']
+    usol = d['output'][:,:1000+1]
+    t_grid = d['t'][:,:1000+1]
     x_grid = d['x']
+    logging.info("USOL SHAPE {}, T_GRID SHAPE: {}, X_GRID SHAPE: {}".format(usol.shape, t_grid.shape, x_grid.shape))
 
     train_dataset = TimeDataSet(usol, t_grid, x_grid, args.max_tsteps)
     logging.info("Dataset length: {}".format(len(train_dataset)))
     results_dd['ntrain'] = len(train_dataset)
-    # print("N_TSTEPS: {}, N_BATCHES: {}, MAX_TSTEPS: {}, DATA_LEN: {}".format(train_dataset.n_tsteps,
-                                                                                # train_dataset.n_batches,
-                                                                                # train_dataset.max_tsteps,
-                                                                                # train_dataset.dataset_len))
+    logging.info("N_TSTEPS: {}, N_BATCHES: {}, MAX_TSTEPS: {}, DATA_LEN: {}".format(train_dataset.n_tsteps,
+                                                                                train_dataset.n_batches,
+                                                                                train_dataset.max_tsteps,
+                                                                                train_dataset.dataset_len))
 
     train_data_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     ##################################################################
