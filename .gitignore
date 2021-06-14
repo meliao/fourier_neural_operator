@@ -10,12 +10,13 @@ jobs/*
 *.png
 *.txt
 data/*
-plots/*
-models/*
-preds/*
+plots/
+models/
+preds/
+results/
 
 # Pycache
-__pycache__/*
+__pycache__/
 
 # Jupyter Notebook stuff
 .ipynb_checkpoints/*
