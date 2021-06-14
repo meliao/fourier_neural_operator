@@ -318,6 +318,7 @@ def main(args):
     results_dd['train_mse'] = train_mse
 
     t1_train = default_timer()
+    results_dd['train_time'] = t1_train - t0_train
     logging.info("Completed training in seconds: {:.2f}".format(t1_train - t0_train))
 
     ################################################################
