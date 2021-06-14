@@ -193,8 +193,8 @@ def main(args):
     ################################################################
 
     x = sio.loadmat(args.data_fp)['output']
-    x_data = x[:,1]
-    y_data = x[:,2]
+    x_data = x[:,0]
+    y_data = x[:,1]
 
     x_train = torch.view_as_real(torch.tensor(x_data[:ntrain,:], dtype = torch.cfloat))
     y_train = torch.tensor(y_data[:ntrain,:], dtype = torch.cfloat)
@@ -243,7 +243,7 @@ def main(args):
 
         t2 = default_timer()
         logging.info("Epoch: {}, time: {:.2f}, train_mse: {:.4f}".format(ep, t2-t1, train_mse))
-    
+
     results_dd['train_mse'] = train_mse
     torch.save(model, args.model_fp)
     logging.info("Saving model to {}".format(args.model_fp))
