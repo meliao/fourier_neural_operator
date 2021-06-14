@@ -332,8 +332,8 @@ def main(args):
     ################################################################
 
     d_test = sio.loadmat(args.test_data_fp)
-    usol_test = d_test['output'][:,::args.time_subsample]
-    t_grid_test = d_test['t'][:,::args.time_subsample]
+    usol_test = d_test['output']
+    t_grid_test = d_test['t']
     x_grid_test = d_test['x']
 
     test_dataset = TimeDataSet(usol_test, t_grid_test, x_grid_test)

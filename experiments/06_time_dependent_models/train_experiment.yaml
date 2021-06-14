@@ -1,24 +1,24 @@
 ---
 definitions:
-  command: "ython -m experiments.05_NLS_composition_baseline.train_models"
+  command: "python -m experiments.06_time_dependent_models.train_models"
   template: train.jinja
 
   copy_to_item: true
 
   default_arguments:
     job_walltime: "4:00:00"
-    logs_folder: experiments/00_increase_frequency_modes/logs
+    logs_folder: experiments/06_time_dependent_models/logs
     partition: "contrib-gpu"
 
   submission:
     !SLURMQueue
-      jobs_folder: experiments/00_increase_frequency_modes/jobs
+      jobs_folder: experiments/06_time_dependent_models/jobs
       job_name_key: job_name
  #     fake_submission: true
 
   constants:
     data_loc: &DATA_LOC "~/projects/fourier_neural_operator/data/2021-06-11_NLS_data_02/NLS_data_seed_0.mat"
-    train_data_loc: &TRAIN_DATA_LOC "~/projects/fourier_neural_operator/data/2021-06-11_NLS_data_02/NLS_data_seed_1.mat"
+    test_data_loc: &TEST_DATA_LOC "~/projects/fourier_neural_operator/data/2021-06-11_NLS_data_02/NLS_data_seed_1.mat"
     save_dir: &SAVE_DIR "~/projects/fourier_neural_operator/experiments/06_time_dependent_models/models"
     results_fp: &RESULTS_FP "~/projects/fourier_neural_operator/experiments/06_time_dependent_models/experiment_results.txt"
     train_df_dir: &TRAIN_DF_DIR "~/projects/fourier_neural_operator/experiments/06_time_dependent_models/results"
@@ -26,7 +26,7 @@ definitions:
 arguments:
 
   - !Scalar { name: data_fp, value: *DATA_LOC, prefix: "--data_fp" }
-  - !Scalar { name: train_data_fp, value: *TRAIN_DATA_LOC, prefix: "--train_data_fp" }
+  - !Scalar { name: test_data_fp, value: *TEST_DATA_LOC, prefix: "--test_data_fp" }
   - !Scalar { name: results_fp, value: *RESULTS_FP, prefix: "--results_fp" }
 
   - !Range
