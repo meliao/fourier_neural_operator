@@ -330,38 +330,40 @@ def main(args):
     ################################################################
     # read testing data
     ################################################################
+    if not args.no_test:
 
-    d_test = sio.loadmat(args.test_data_fp)
-    usol_test = d_test['output']
-    t_grid_test = d_test['t']
-    x_grid_test = d_test['x']
+        d_test = sio.loadmat(args.test_data_fp)
+        usol_test = d_test['output']
+        t_grid_test = d_test['t']
+        x_grid_test = d_test['x']
 
-    test_dataset = TimeDataSet(usol_test, t_grid_test, x_grid_test)
-    logging.info("Test Dataset: {}".format(test_dataset))
-    results_dd['ntest'] = len(test_dataset)
+        test_dataset = TimeDataSet(usol_test, t_grid_test, x_grid_test)
+        logging.info("Test Dataset: {}".format(test_dataset))
+        results_dd['ntest'] = len(test_dataset)
 
-    test_data_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
+        test_data_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
 
     ################################################################
     # test the model
     ################################################################
     test_mse = 0.
     test_l2_norm_error = 0.
+    if not args.no_test:
 
-    with torch.no_grad():
-        for x, y, t in test_data_loader:
-            x, y, t = x.to(device), y.to(device), t.to(device)
+        with torch.no_grad():
+            for x, y, t in test_data_loader:
+                x, y, t = x.to(device), y.to(device), t.to(device)
 
-            out = model(x, t)
+                out = model(x, t)
 
-            mse = MSE(out, y)
-            test_mse += mse.item()
+                mse = MSE(out, y)
+                test_mse += mse.item()
 
-            l2_err = l2_normalized_error(out, y)
-            test_l2_norm_error += l2_err.item()
+                l2_err = l2_normalized_error(out, y)
+                test_l2_norm_error += l2_err.item()
 
-    test_mse /= len(test_data_loader)
-    test_l2_norm_error /= len(test_data_loader)
+        test_mse /= len(test_data_loader)
+        test_l2_norm_error /= len(test_data_loader)
 
     results_dd['test_mse'] = test_mse
     results_dd['test_l2_normalized_error'] = test_l2_norm_error
@@ -390,6 +392,7 @@ if __name__ == '__main__':
     parser.add_argument('--freq_modes', type=int, default=16)
     parser.add_argument('--width', type=int, default=64)
     parser.add_argument('--time_subsample', type=int, default=1)
+    parser.add_argument('--no_test', default=False, action='store_true')
 
     args = parser.parse_args()
     fmt = "%(asctime)s:FNO: %(levelname)s - %(message)s"
