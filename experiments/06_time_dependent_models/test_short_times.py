@@ -66,12 +66,15 @@ def prepare_input(X):
 
     return X_input
 
-def test_models_in_dir(X, t_grid, models_dir, plots_dir):
+def test_models_in_dir(X, t_grid, models_dir, plots_dir, prefix=None):
     errors_dd = {}
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info("Running computation on device: {}".format(device))
     model_lst = os.listdir(models_dir)
     for m in model_lst:
+        if prefix is not None:
+            if not m.startswith(prefix):
+                continue
         model_fp = os.path.join(models_dir, m)
         logging.info("Working on model {}".format(m))
         preds = load_one_model_and_test(model_fp, X, t_grid, device)
@@ -179,19 +182,19 @@ def make_training_results_plot_1(result_df, plot_fp):
     plt.savefig(plot_fp)
     plt.clf()
 
-def plot_heatmap(values, lambda_1, lambda_2, title, cbarlabel, path):
-    l1_axis = np.unique(lambda_1) #Lambda 1 on vertical
-    l2_axis = np.unique(lambda_2) #Lambda 2 on horizontal
-    values_arr = values.reshape((l1_axis.shape[0], l2_axis.shape[0]))
-    values_arr = np.log10(values_arr)
+def plot_heatmap(values, axis_y, axis_x, title, cbarlabel, path):
+    # l1_axis = np.unique(lambda_1) #Lambda 1 on vertical
+    # l2_axis = np.unique(lambda_2) #Lambda 2 on horizontal
+    # values_arr = values.reshape((l1_axis.shape[0], l2_axis.shape[0]))
+    values = np.log10(values)
     fig, ax = plt.subplots()
-    im = ax.imshow(values_arr, origin='lower')
-    ax.set_xticks([i for i in range(l2_axis.shape[0])])
-    ax.set_xticklabels(l2_axis)
+    im = ax.imshow(values, origin='lower')
+    ax.set_xticks([i for i in range(axis_x.shape[0])])
+    ax.set_xticklabels(axis_x)
     # ax.set_xticklabels(["{:.2f}".format(i) for i in l2_axis])
-    ax.set_xlabel('Training set size')
-    ax.set_yticks([i for i in range(l1_axis.shape[0])])
-    ax.set_yticklabels(l1_axis)
+    ax.set_xlabel('Time step subsample factor')
+    ax.set_yticks([i for i in range(axis_y.shape[0])])
+    ax.set_yticklabels(axis_y)
     # ax.set_yticklabels(["{:.2f}".format(i) for i in l1_axis])
     ax.set_ylabel('Model no. frequency modes')
     cbar = ax.figure.colorbar(im, ax=ax)
@@ -224,29 +227,44 @@ def main(args):
     if not os.path.isdir(args.plots_dir):
         os.mkdir(args.plots_dir)
 
-    df_training_results = pd.read_table(args.training_results)
-    df_training_results = df_training_results.sort_values('modes')
-    df_training_results = df_training_results[df_training_results['modes'] < 256]
-    # df_training_results = df_training_results[df_training_results['ntrain'] < 256]
-    df_training_results['experiment_str'] = 'modes_' + df_training_results['modes'].astype(str) + '_ntrain_' + df_training_results['ntrain'].astype(str)
+    df = pd.read_table(args.training_results)
+    df = df.sort_values('modes')
+    df = df[df['modes'] < 256]
+
+    dd_sub = {100: 200,
+                450: 100,
+                1900: 50,
+                7800: 25,
+                49500: 10}
+    df['sub'] = df['ntrain'].map(dd_sub)
+    df = df.sort_values('sub')
+
+    # df = df[df['ntrain'] < 256]
+    df['experiment_str'] = ('modes_'
+                            + df['modes'].astype(str)
+                            + '_sub_'
+                            + df['ntrain'].astype(str)
+                            + 'NLS_1d')
 
     fp_training_results = os.path.join(args.plots_dir, 'FNO_NLS_test_performance.png')
-    plot_heatmap(df_training_results['test_l2_normalized_error'].values,
-                    df_training_results['modes'].values,
-                    df_training_results['ntrain'].values,
-                    'Model test performance',
-                    'log $L_2$-Normalized Error',
+    plt_df = df[['modes', 'sub', 'test_l2_normalized_error']].pivot(index='modes', columns='sub', values='test_l2_normalized_error')
+    plot_heatmap(plt_df.values,
+                    plt_df.index.values,
+                    plt_df.columns.values,
+                    'FNO short-time test performance',
+                    '$log_{10}$ $L_2$-Normalized Error',
                     fp_training_results)
-    return
-    # make_training_results_plot_1(df_training_results, fp_training_results)
-
     fp_training_results_t = os.path.join(args.plots_dir, 'FNO_NLS_training_times.png')
-    make_training_results_plot_2(df_training_results, fp_training_results_t)
+    make_training_results_plot_2(df, fp_training_results_t)
 
     X, t_grid = load_data(args.data_fp)
     logging.info("Loaded data from {}".format(args.data_fp))
 
-    errors_dd = test_models_in_dir(X, t_grid, args.models_dir, args.plots_dir)
+    errors_dd = test_models_in_dir(X,
+                                    t_grid,
+                                    args.models_dir,
+                                    args.plots_dir,
+                                    'freq_8')
 
     errors_fp = os.path.join(args.plots_dir, "FNO_time_errors.png")
     plot_time_errors(errors_dd, t_grid, errors_fp)
