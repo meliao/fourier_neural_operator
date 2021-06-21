@@ -47,4 +47,7 @@ for i=1:N_TRAINING_EXAMPLES
     output(i,j+1,:) = u{j_idx}.values;
   end
 end
-save(FP_OUT, 'output');
+
+x = x_grid;
+t = 0:TMAX;
+save(FP_OUT, 'output', 'x', 't');
