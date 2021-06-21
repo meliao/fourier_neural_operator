@@ -227,41 +227,35 @@ def main(args):
     if not os.path.isdir(args.plots_dir):
         os.mkdir(args.plots_dir)
 
-    df = pd.read_table(args.training_results)
-    df = df.sort_values('modes')
-    df = df[df['modes'] < 256]
-
-    dd_sub = {100: 200,
-                450: 100,
-                1900: 50,
-                7800: 25,
-                49500: 10}
-    df['sub'] = df['ntrain'].map(dd_sub)
-    df = df.sort_values('sub')
-
-    # df = df[df['ntrain'] < 256]
-    df['experiment_str'] = ('modes_'
-                            + df['modes'].astype(str)
-                            + '_sub_'
-                            + df['ntrain'].astype(str)
-                            + 'NLS_1d')
-
-    fp_training_results = os.path.join(args.plots_dir, 'FNO_NLS_test_performance.png')
-    plt_df = df[['modes', 'sub', 'test_l2_normalized_error']].pivot(index='modes', columns='sub', values='test_l2_normalized_error')
-    plot_heatmap(plt_df.values,
-                    plt_df.index.values,
-                    plt_df.columns.values,
-                    'FNO short-time test performance',
-                    '$log_{10}$ $L_2$-Normalized Error',
-                    fp_training_results)
-<<<<<<< HEAD
-#    return
-    # make_training_results_plot_1(df_training_results, fp_training_results)
-
-=======
->>>>>>> 4ea8da8f7a07b6bf1b809dab8af58b7b15d5a93c
-    fp_training_results_t = os.path.join(args.plots_dir, 'FNO_NLS_training_times.png')
-    make_training_results_plot_2(df, fp_training_results_t)
+    # df = pd.read_table(args.training_results)
+    # df = df.sort_values('modes')
+    # df = df[df['modes'] < 256]
+    #
+    # dd_sub = {100: 200,
+    #             450: 100,
+    #             1900: 50,
+    #             7800: 25,
+    #             49500: 10}
+    # df['sub'] = df['ntrain'].map(dd_sub)
+    # df = df.sort_values('sub')
+    #
+    # # df = df[df['ntrain'] < 256]
+    # df['experiment_str'] = ('modes_'
+    #                         + df['modes'].astype(str)
+    #                         + '_sub_'
+    #                         + df['ntrain'].astype(str)
+    #                         + 'NLS_1d')
+    #
+    # fp_training_results = os.path.join(args.plots_dir, 'FNO_NLS_test_performance.png')
+    # plt_df = df[['modes', 'sub', 'test_l2_normalized_error']].pivot(index='modes', columns='sub', values='test_l2_normalized_error')
+    # plot_heatmap(plt_df.values,
+    #                 plt_df.index.values,
+    #                 plt_df.columns.values,
+    #                 'FNO short-time test performance',
+    #                 '$log_{10}$ $L_2$-Normalized Error',
+    #                 fp_training_results)
+    # fp_training_results_t = os.path.join(args.plots_dir, 'FNO_NLS_training_times.png')
+    # make_training_results_plot_2(df, fp_training_results_t)
 
     X, t_grid = load_data(args.data_fp)
     logging.info("Loaded data from {}".format(args.data_fp))
@@ -270,7 +264,7 @@ def main(args):
                                     t_grid,
                                     args.models_dir,
                                     args.plots_dir,
-                                    '00')
+                                    '0')
 
     errors_fp = os.path.join(args.plots_dir, "FNO_time_errors.png")
     plot_time_errors(errors_dd, t_grid, errors_fp)

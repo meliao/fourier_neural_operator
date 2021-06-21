@@ -58,9 +58,9 @@ class SpectralConv1d(nn.Module):
         return x
 
 
-class FNO1dComplexTime(nn.Module):
+class FNO1dComplex(nn.Module):
     def __init__(self, modes, width):
-        super(FNO1dComplexTime, self).__init__()
+        super(FNO1dComplex, self).__init__()
 
         """
         The overall network. It contains 4 layers of the Fourier layer.
@@ -77,7 +77,7 @@ class FNO1dComplexTime(nn.Module):
 
         self.modes1 = modes
         self.width = width
-        self.fc0 = nn.Linear(4, self.width) # input channel is 3: (Re(a(x)), Im(a(x)), x, t)
+        self.fc0 = nn.Linear(3, self.width) # input channel is 3: (Re(a(x)), Im(a(x)), x)
 
         self.conv0 = SpectralConv1d(self.width, self.width, self.modes1)
         self.conv1 = SpectralConv1d(self.width, self.width, self.modes1)
@@ -92,20 +92,8 @@ class FNO1dComplexTime(nn.Module):
         self.fc1 = nn.Linear(self.width, 128)
         self.fc2 = nn.Linear(128, 2)
 
-    def forward(self, x, t):
-        # print("INPUT X SHAPE: {} DTYPE: {}".format(x.shape, x.dtype))
-        # print("INPUT T SHAPE: {} DTYPE: {}".format(t.shape, t.dtype))
-        # print("T: {}".format(t))
-        t = t.view(-1, 1, 1).repeat([1, x.shape[1], 1])
-        # print("T0: {}".format(t[0]))
-        # print("T1: {}".format(t[1]))
-        # print("INPUT T SHAPE: {} DTYPE: {}".format(t.shape, t.dtype))
-        # o = torch.ones((1,  x.size()[1]), dtype = torch.float)
-        # print("INPUT O SHAPE: {} DTYPE: {}".format(o.shape, o.dtype))
-        # t_arr = torch.matmul(t,  o)
-        # print("T_ARR SHAPE: {}".format(t_arr.shape))
-        x = torch.cat([x, t], dim=2)
-        # print("X SHAPE: {}".format(x.shape))
+    def forward(self, x):
+
         x = self.fc0(x)
         x = x.permute(0, 2, 1)
 
@@ -271,7 +259,7 @@ def main(args):
     # initialize model and optimizer
     ##################################################################
 
-    model = FNO1dComplexTime(width=width, modes=modes).to(device)
+    model = FNO1dComplex(width=width, modes=modes).to(device)
     optimizer = torch.optim.Adam(model.parameters())
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
                     step_size=step_size, gamma=gamma)
@@ -287,12 +275,12 @@ def main(args):
         t1 = default_timer()
         train_mse = 0
         train_l2 = 0
-        for x, y, t in train_data_loader:
-            x, y, t = x.to(device), y.to(device), t.to(device)
+        for x, y, _ in train_data_loader:
+            x, y = x.to(device), y.to(device)
             # print("X SHAPE: {}, Y SHAPE: {}".format(x.shape, y.shape))
 
             optimizer.zero_grad()
-            out = model(x, t)
+            out = model(x)
 
             mse = MSE(out, y)
             mse.backward()
