@@ -264,7 +264,7 @@ def main(args):
                                     t_grid,
                                     args.models_dir,
                                     args.plots_dir,
-                                    'freq_8')
+                                    '00')
 
     errors_fp = os.path.join(args.plots_dir, "FNO_time_errors.png")
     plot_time_errors(errors_dd, t_grid, errors_fp)

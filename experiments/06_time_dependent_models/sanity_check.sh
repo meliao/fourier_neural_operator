@@ -19,9 +19,9 @@ conda activate fourier_neural_operator
 python -m experiments.06_time_dependent_models.train_models_sanity_check \
 --data_fp ~/projects/fourier_neural_operator/data/2021-06-18_NLS_one_step_train.mat \
 --test_data_fp ~/projects/fourier_neural_operator/data/2021-06-18_NLS_one_step_test.mat \
---train_df ~/projects/fourier_neural_operator/experiments/06_time_dependent_models/results/00_sanity_check.txt \
---model_fp ~/projects/fourier_neural_operator/experiments/06_time_dependent_models/models/00_sanity_check \
---results_fp ~/projects/fourier_neural_operator/experiments/06_time_dependent_models/00_sanity_check.txt \
+--train_df ~/projects/fourier_neural_operator/experiments/06_time_dependent_models/results/01_sanity_check.txt \
+--model_fp ~/projects/fourier_neural_operator/experiments/06_time_dependent_models/models/01_sanity_check \
+--results_fp ~/projects/fourier_neural_operator/experiments/06_time_dependent_models/01_sanity_check.txt \
 --freq_modes 8 \
 --time_subsample 1 \
 --epochs 2
