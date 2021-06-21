@@ -223,7 +223,7 @@ def main(args):
     ntest = 100
 
     # batch_size = 1024
-    batch_size = 200
+    batch_size = 20
     learning_rate = 0.001
 
     step_size = 100
