@@ -137,6 +137,7 @@ class FNO1dComplexTime(nn.Module):
 class TimeDataSet(torch.utils.data.Dataset):
     def __init__(self, X, t_grid, x_grid):
         super(TimeDataSet, self).__init__()
+        assert X.shape[1] == t_grid.shape[-1]
         self.X = X
         self.t = torch.tensor(t_grid.flatten(), dtype=torch.float)
         self.x_grid = torch.tensor(x_grid, dtype=torch.float).view(-1, 1)
@@ -224,7 +225,6 @@ def main(args):
     batch_size = 1024
     learning_rate = 0.001
 
-    epochs = args.epochs
     step_size = 100
     gamma = 0.5
 
@@ -235,18 +235,16 @@ def main(args):
     # a single line to a text file at args.results_fp
     results_dd = {'ntrain': ntrain,
                     'ntest': ntest,
-                    'epochs': epochs,
                     'modes': modes,
                     'width': width}
 
     ################################################################
-    # read data
+    # read training data
     ################################################################
 
     d = sio.loadmat(args.data_fp)
-    usol = d['output'][0,:1000+1]
-    usol = np.expand_dims(usol, axis=0)
-    t_grid = d['t'][:,:1000+1]
+    usol = d['output'][:,::args.time_subsample]
+    t_grid = d['t'][:,::args.time_subsample]
     x_grid = d['x']
     logging.info("USOL SHAPE {}, T_GRID SHAPE: {}, X_GRID SHAPE: {}".format(usol.shape, t_grid.shape, x_grid.shape))
 
@@ -259,6 +257,20 @@ def main(args):
     #                                                                             train_dataset.dataset_len))
 
     train_data_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+
+    # I want to approximately normalize the time spent on training by enforcing
+    # n_epochs * len(train_dataset) = constant \approx 2 hours on GPU
+    n_epochs_varied = int(50 * 500000 // len(train_dataset))
+
+    if args.epochs is not None:
+        epochs = args.epochs
+        logging.info("Beginning training for {} epochs, set externally".format(epochs))
+    else:
+        epochs = n_epochs_varied
+        logging.info("Beginning training for {} epochs, set by data len".format(epochs))
+
+    results_dd['epochs'] = epochs
+
     ##################################################################
     # initialize model and optimizer
     ##################################################################
@@ -272,6 +284,7 @@ def main(args):
     ################################################################
     # training and evaluation
     ################################################################
+    t0_train = default_timer()
     for ep in range(epochs):
         model.train()
         t1 = default_timer()
@@ -304,11 +317,56 @@ def main(args):
 
     results_dd['train_mse'] = train_mse
 
+    t1_train = default_timer()
+    results_dd['train_time'] = t1_train - t0_train
+    logging.info("Completed training in seconds: {:.2f}".format(t1_train - t0_train))
+
     ################################################################
     # save model
     ################################################################
     torch.save(model, args.model_fp)
     logging.info("Saving model to {}".format(args.model_fp))
+
+    ################################################################
+    # read testing data
+    ################################################################
+    if not args.no_test:
+
+        d_test = sio.loadmat(args.test_data_fp)
+        usol_test = d_test['output']
+        t_grid_test = d_test['t']
+        x_grid_test = d_test['x']
+
+        test_dataset = TimeDataSet(usol_test, t_grid_test, x_grid_test)
+        logging.info("Test Dataset: {}".format(test_dataset))
+        results_dd['ntest'] = len(test_dataset)
+
+        test_data_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
+
+    ################################################################
+    # test the model
+    ################################################################
+    test_mse = 0.
+    test_l2_norm_error = 0.
+    if not args.no_test:
+
+        with torch.no_grad():
+            for x, y, t in test_data_loader:
+                x, y, t = x.to(device), y.to(device), t.to(device)
+
+                out = model(x, t)
+
+                mse = MSE(out, y)
+                test_mse += mse.item()
+
+                l2_err = l2_normalized_error(out, y)
+                test_l2_norm_error += l2_err.item()
+
+        test_mse /= len(test_data_loader)
+        test_l2_norm_error /= len(test_data_loader)
+
+    results_dd['test_mse'] = test_mse
+    results_dd['test_l2_normalized_error'] = test_l2_norm_error
 
     if args.results_fp is not None:
         write_result_to_file(args.results_fp, **results_dd)
@@ -324,14 +382,17 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_fp')
+    parser.add_argument('--test_data_fp')
     parser.add_argument('--model_fp')
     parser.add_argument('--train_df')
     parser.add_argument('--results_fp', default=None,
                         help='If specified, trial results will be dumped into \
                                 one line of this text file')
-    parser.add_argument('--epochs', type=int, default=500)
+    parser.add_argument('--epochs', type=int)
     parser.add_argument('--freq_modes', type=int, default=16)
     parser.add_argument('--width', type=int, default=64)
+    parser.add_argument('--time_subsample', type=int, default=1)
+    parser.add_argument('--no_test', default=False, action='store_true')
 
     args = parser.parse_args()
     fmt = "%(asctime)s:FNO: %(levelname)s - %(message)s"

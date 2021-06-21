@@ -1,0 +1,29 @@
+#!/bin/bash
+
+#SBATCH --job-name={{ job_name }}
+#SBATCH --time={{ job_walltime }}
+#SBATCH --partition={{ partition }}
+#SBATCH --output={{ logs_folder }}/{{ job_name }}.out
+#SBATCH --error={{ logs_folder }}/{{ job_name }}.err
+
+echo "`date` Starting Job"
+echo "SLURM Info: Job name:${SLURM_JOB_NAME}"
+echo "    JOB ID: ${SLURM_JOB_ID}"
+echo "    Host list: ${SLURM_JOB_NODELIST}"
+
+source  ~/conda_init.sh
+cd ~/projects/fourier_neural_operator/
+conda activate fourier_neural_operator
+
+
+{{ command }} \
+{{ data_fp }} \
+{{ test_data_fp }} \
+{{ train_df_fp }} \
+{{ model_fp }} \
+{{ preds_fp }} \
+{{ results_fp }} \
+{{ frequency_modes }} \
+{{ time_subsample }}
+
+

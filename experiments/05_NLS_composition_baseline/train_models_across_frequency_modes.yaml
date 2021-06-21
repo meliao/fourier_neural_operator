@@ -17,7 +17,7 @@ definitions:
  #     fake_submission: true
 
   constants:
-    data_loc: &DATA_LOC "~/projects/fourier_neural_operator/data/2021-06-07_NLS_two_step_training_dataset.mat"
+    data_loc: &DATA_LOC "~/projects/fourier_neural_operator/data/2021-06-11_NLS_data_01_one_step_train.mat"
     save_dir: &SAVE_DIR "~/projects/fourier_neural_operator/experiments/05_NLS_composition_baseline/models"
     preds_dir: &PREDS_DIR "~/projects/fourier_neural_operator/experiments/05_NLS_composition_baseline/preds"
     results_fp: &RESULTS_FP "~/projects/fourier_neural_operator/experiments/05_NLS_composition_baseline/experiment_results.txt"

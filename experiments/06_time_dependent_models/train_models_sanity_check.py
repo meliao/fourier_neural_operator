@@ -56,9 +56,11 @@ class SpectralConv1d(nn.Module):
         #Return to physical space
         x = torch.fft.irfft(out_ft, n=x.size(-1))
         return x
-class FNO1dComplex(nn.Module):
+
+
+class FNO1dComplexTime(nn.Module):
     def __init__(self, modes, width):
-        super(FNO1dComplex, self).__init__()
+        super(FNO1dComplexTime, self).__init__()
 
         """
         The overall network. It contains 4 layers of the Fourier layer.
@@ -75,7 +77,7 @@ class FNO1dComplex(nn.Module):
 
         self.modes1 = modes
         self.width = width
-        self.fc0 = nn.Linear(3, self.width) # input channel is 3: (Re(a(x)), Im(a(x)), x)
+        self.fc0 = nn.Linear(4, self.width) # input channel is 3: (Re(a(x)), Im(a(x)), x, t)
 
         self.conv0 = SpectralConv1d(self.width, self.width, self.modes1)
         self.conv1 = SpectralConv1d(self.width, self.width, self.modes1)
@@ -90,8 +92,20 @@ class FNO1dComplex(nn.Module):
         self.fc1 = nn.Linear(self.width, 128)
         self.fc2 = nn.Linear(128, 2)
 
-    def forward(self, x):
-
+    def forward(self, x, t):
+        # print("INPUT X SHAPE: {} DTYPE: {}".format(x.shape, x.dtype))
+        # print("INPUT T SHAPE: {} DTYPE: {}".format(t.shape, t.dtype))
+        # print("T: {}".format(t))
+        t = t.view(-1, 1, 1).repeat([1, x.shape[1], 1])
+        # print("T0: {}".format(t[0]))
+        # print("T1: {}".format(t[1]))
+        # print("INPUT T SHAPE: {} DTYPE: {}".format(t.shape, t.dtype))
+        # o = torch.ones((1,  x.size()[1]), dtype = torch.float)
+        # print("INPUT O SHAPE: {} DTYPE: {}".format(o.shape, o.dtype))
+        # t_arr = torch.matmul(t,  o)
+        # print("T_ARR SHAPE: {}".format(t_arr.shape))
+        x = torch.cat([x, t], dim=2)
+        # print("X SHAPE: {}".format(x.shape))
         x = self.fc0(x)
         x = x.permute(0, 2, 1)
 
@@ -120,6 +134,44 @@ class FNO1dComplex(nn.Module):
         x = self.fc2(x)
         return torch.view_as_complex(x)
 
+class TimeDataSet(torch.utils.data.Dataset):
+    def __init__(self, X, t_grid, x_grid):
+        super(TimeDataSet, self).__init__()
+        assert X.shape[1] == t_grid.shape[-1]
+        self.X = X
+        self.t = torch.tensor(t_grid.flatten(), dtype=torch.float)
+        self.x_grid = torch.tensor(x_grid, dtype=torch.float).view(-1, 1)
+        self.n_tsteps = self.t.shape[0]
+        self.n_batches = self.X.shape[0]
+        self.time_indices = [ (i,j)  for j in range(self.n_tsteps) for i in range(j)]
+        self.n_t_pairs = len(self.time_indices)
+        self.dataset_len = self.n_t_pairs * self.n_batches
+
+    def make_x_train(self, x_in):
+        x_in = torch.view_as_real(torch.tensor(x_in, dtype=torch.cfloat))
+        y = torch.cat([x_in, self.x_grid], axis=-1)
+        return y
+
+    def __getitem__(self, idx):
+        idx_original = idx
+        t_idx = int(idx % self.n_t_pairs)
+        idx = int(idx // self.n_t_pairs)
+        batch_idx = int(idx % self.n_batches)
+        start_time_idx, end_time_idx = self.time_indices[t_idx]
+        # print("IDX: {}, T_IDX: {}, B_IDX: {}, START_T_IDX: {}, END_T_IDX: {}".format(idx_original, t_idx, batch_idx, start_time_idx, end_time_idx))
+        x = self.make_x_train(self.X[batch_idx, start_time_idx]) #.reshape(self.output_shape)
+        y = self.X[batch_idx, end_time_idx] #.reshape(self.output_shape)
+        t = self.t[end_time_idx - start_time_idx]
+        return x,y,t
+
+    def __len__(self):
+        return self.dataset_len
+
+    def __repr__(self):
+        return "TimeDataSet with length {}, n_tsteps {}, n_t_pairs {}, n_batches {}".format(self.dataset_len,
+                                                                                            self.n_tsteps,
+                                                                                            self.n_t_pairs,
+                                                                                            self.n_batches)
 
 def write_result_to_file(fp, missing_str='', **trial):
     """Write a line to a tab-separated file saving the results of a single
@@ -173,62 +225,74 @@ def main(args):
     batch_size = 20
     learning_rate = 0.001
 
-    epochs = args.epochs
     step_size = 100
     gamma = 0.5
 
     modes = args.freq_modes
-    width = 64
+    width = args.width
 
     # results_dd stores trial results and metadata. It will be printed as
     # a single line to a text file at args.results_fp
     results_dd = {'ntrain': ntrain,
                     'ntest': ntest,
-                    'epochs': epochs,
                     'modes': modes,
                     'width': width}
 
     ################################################################
-    # read data
+    # read training data
     ################################################################
 
-    x = sio.loadmat(args.data_fp)['output']
-    x_data = x[:,0]
-    y_data = x[:,1]
+    d = sio.loadmat(args.data_fp)
+    usol = d['output'][:,::args.time_subsample]
+    t_grid = d['t'][:,::args.time_subsample]
+    x_grid = d['x']
+    logging.info("USOL SHAPE {}, T_GRID SHAPE: {}, X_GRID SHAPE: {}".format(usol.shape, t_grid.shape, x_grid.shape))
 
-    x_train = torch.view_as_real(torch.tensor(x_data[:ntrain,:], dtype = torch.cfloat))
-    y_train = torch.tensor(y_data[:ntrain,:], dtype = torch.cfloat)
-    x_test = torch.view_as_real(torch.tensor(x_data[-ntest:,:], dtype = torch.cfloat))
-    y_test = torch.tensor(y_data[-ntest:,:], dtype = torch.cfloat)
+    train_dataset = TimeDataSet(usol, t_grid, x_grid)
+    logging.info("Dataset: {}".format(train_dataset))
+    results_dd['ntrain'] = len(train_dataset)
 
-    x_grid = torch.linspace(-np.pi, np.pi, 1024).view(-1,1)
-    x_train = torch.cat((x_train, x_grid.repeat(ntrain, 1, 1)), axis=2)
-    x_test = torch.cat((x_test, x_grid.repeat(ntest, 1, 1)), axis=2)
+    train_data_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
-    train_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_train, y_train), batch_size=batch_size, shuffle=True)
-    test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=batch_size, shuffle=False)
+    # I want to approximately normalize the time spent on training by enforcing
+    # n_epochs * len(train_dataset) = constant \approx 2 hours on GPU
+    n_epochs_varied = int(50 * 500000 // len(train_dataset))
+
+    if args.epochs is not None:
+        epochs = args.epochs
+        logging.info("Beginning training for {} epochs, set externally".format(epochs))
+    else:
+        epochs = n_epochs_varied
+        logging.info("Beginning training for {} epochs, set by data len".format(epochs))
+
+    results_dd['epochs'] = epochs
 
     ##################################################################
     # initialize model and optimizer
     ##################################################################
 
-    model = FNO1dComplex(width=width, modes=modes).to(device)
+    model = FNO1dComplexTime(width=width, modes=modes).to(device)
     optimizer = torch.optim.Adam(model.parameters())
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
+                    step_size=step_size, gamma=gamma)
+
+    training_dd = {}
 
     ################################################################
     # training and evaluation
     ################################################################
+    t0_train = default_timer()
     for ep in range(epochs):
         model.train()
         t1 = default_timer()
         train_mse = 0
         train_l2 = 0
-        for x, y in train_loader:
-            x, y = x.to(device), y.to(device)
+        for x, y, t in train_data_loader:
+            x, y, t = x.to(device), y.to(device), t.to(device)
+            # print("X SHAPE: {}, Y SHAPE: {}".format(x.shape, y.shape))
 
             optimizer.zero_grad()
-            out = model(x)
+            out = model(x, t)
 
             mse = MSE(out, y)
             mse.backward()
@@ -239,44 +303,68 @@ def main(args):
         scheduler.step()
         model.eval()
 
-        train_mse /= len(train_loader)
+        train_mse /= len(train_data_loader)
 
         t2 = default_timer()
         logging.info("Epoch: {}, time: {:.2f}, train_mse: {:.4f}".format(ep, t2-t1, train_mse))
+        training_dd['epoch'] = ep
+        training_dd['MSE'] = train_mse
+        training_dd['time'] = t2-t1
+        write_result_to_file(args.train_df, **training_dd)
 
     results_dd['train_mse'] = train_mse
+
+    t1_train = default_timer()
+    results_dd['train_time'] = t1_train - t0_train
+    logging.info("Completed training in seconds: {:.2f}".format(t1_train - t0_train))
+
+    ################################################################
+    # save model
+    ################################################################
     torch.save(model, args.model_fp)
     logging.info("Saving model to {}".format(args.model_fp))
 
     ################################################################
-    # create and evaluate test predictions
+    # read testing data
     ################################################################
-    # pred = torch.zeros(y_test.shape, dtype=torch.cfloat)
-    pred_arr = []
-    # print(pred.size())
-    # index = 0
-    test_mse = 0
-    with torch.no_grad():
-        for x, y in test_loader:
-            x, y = x.to(device), y.to(device)
+    if not args.no_test:
 
-            out = model(x)
-            print(out.size())
-            pred_arr.append(out)
-            # pred[index] = out
+        d_test = sio.loadmat(args.test_data_fp)
+        usol_test = d_test['output']
+        t_grid_test = d_test['t']
+        x_grid_test = d_test['x']
 
-            test_mse += MSE(out, y)
-            # index = index + batch_size
+        test_dataset = TimeDataSet(usol_test, t_grid_test, x_grid_test)
+        logging.info("Test Dataset: {}".format(test_dataset))
+        results_dd['ntest'] = len(test_dataset)
 
-    pred = torch.cat(pred_arr, axis=0)
-    print(pred.size())
-    sio.savemat(args.preds_fp, {'pred': pred.cpu().numpy()})
-    logging.info("Saving predictions to {}".format(args.preds_fp))
+        test_data_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
 
-    test_mse = test_mse / len(test_loader)
-    results_dd['test_mse'] = test_mse.cpu().numpy()
+    ################################################################
+    # test the model
+    ################################################################
+    test_mse = 0.
+    test_l2_norm_error = 0.
+    if not args.no_test:
 
-    results_dd['test_l2_normalized_errors'] = l2_normalized_error(pred.to('cpu'), y_test.to('cpu')).cpu().numpy()
+        with torch.no_grad():
+            for x, y, t in test_data_loader:
+                x, y, t = x.to(device), y.to(device), t.to(device)
+
+                out = model(x, t)
+
+                mse = MSE(out, y)
+                test_mse += mse.item()
+
+                l2_err = l2_normalized_error(out, y)
+                test_l2_norm_error += l2_err.item()
+
+        test_mse /= len(test_data_loader)
+        test_l2_norm_error /= len(test_data_loader)
+
+    results_dd['test_mse'] = test_mse
+    results_dd['test_l2_normalized_error'] = test_l2_norm_error
+
     if args.results_fp is not None:
         write_result_to_file(args.results_fp, **results_dd)
         logging.info("Wrote results to {}".format(args.results_fp))
@@ -291,13 +379,17 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_fp')
+    parser.add_argument('--test_data_fp')
     parser.add_argument('--model_fp')
-    parser.add_argument('--preds_fp')
+    parser.add_argument('--train_df')
     parser.add_argument('--results_fp', default=None,
                         help='If specified, trial results will be dumped into \
                                 one line of this text file')
-    parser.add_argument('--epochs', type=int, default=500)
+    parser.add_argument('--epochs', type=int)
     parser.add_argument('--freq_modes', type=int, default=16)
+    parser.add_argument('--width', type=int, default=64)
+    parser.add_argument('--time_subsample', type=int, default=1)
+    parser.add_argument('--no_test', default=False, action='store_true')
 
     args = parser.parse_args()
     fmt = "%(asctime)s:FNO: %(levelname)s - %(message)s"
