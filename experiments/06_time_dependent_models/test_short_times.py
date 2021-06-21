@@ -112,7 +112,7 @@ def load_one_model_and_test(model_fp, X, t_grid, device):
         for i in range(1, X.shape[1]):
             time_i = prepare_t_input(t_grid[0,i], X.shape[0]).to(device)
             # Errors from composing the model
-            preds_i = model(input, time_i).detach().numpy()
+            preds_i = model(input, time_i).cpu().numpy()
             predictions_arr[:,i,:] = preds_i
     return predictions_arr
 
@@ -254,6 +254,12 @@ def main(args):
                     'FNO short-time test performance',
                     '$log_{10}$ $L_2$-Normalized Error',
                     fp_training_results)
+<<<<<<< HEAD
+#    return
+    # make_training_results_plot_1(df_training_results, fp_training_results)
+
+=======
+>>>>>>> 4ea8da8f7a07b6bf1b809dab8af58b7b15d5a93c
     fp_training_results_t = os.path.join(args.plots_dir, 'FNO_NLS_training_times.png')
     make_training_results_plot_2(df, fp_training_results_t)
 
@@ -293,10 +299,10 @@ def main(args):
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_fp', default="~/projects/fourier_neural_operator/data/2021-06-11_NLS_data_02/NLS_data_seed_1.mat")
-    parser.add_argument('--plots_dir', default="/home/owen/projects/fourier_neural_operator/experiments/06_time_dependent_models/plots/")
-    parser.add_argument('--training_results', default="/home/owen/projects/fourier_neural_operator/experiments/06_time_dependent_models/experiment_results.txt")
-    parser.add_argument('--models_dir', default="/home/owen/projects/fourier_neural_operator/experiments/06_time_dependent_models/models")
+    parser.add_argument('--data_fp', default="/home-nfs/meliao/projects/fourier_neural_operator/data/2021-06-11_NLS_data_02/NLS_data_seed_1.mat")
+    parser.add_argument('--plots_dir', default="/home-nfs/meliao/projects/fourier_neural_operator/experiments/06_time_dependent_models/plots/")
+    parser.add_argument('--training_results', default="/home-nfs/meliao/projects/fourier_neural_operator/experiments/06_time_dependent_models/experiment_results.txt")
+    parser.add_argument('--models_dir', default="/home-nfs/meliao/projects/fourier_neural_operator/experiments/06_time_dependent_models/models")
 
     args = parser.parse_args()
     fmt = "%(asctime)s:FNO: %(levelname)s - %(message)s"

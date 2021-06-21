@@ -24,4 +24,6 @@ python -m experiments.06_time_dependent_models.train_models_sanity_check \
 --results_fp ~/projects/fourier_neural_operator/experiments/06_time_dependent_models/01_sanity_check.txt \
 --freq_modes 8 \
 --time_subsample 1 \
---epochs 2
+--epochs 500
+
+
