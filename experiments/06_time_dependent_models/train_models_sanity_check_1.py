@@ -336,10 +336,10 @@ def main(args):
     if not args.no_test:
 
         with torch.no_grad():
-            for x, y, t in test_data_loader:
-                x, y, t = x.to(device), y.to(device), t.to(device)
+            for x, y, _ in test_data_loader:
+                x, y = x.to(device), y.to(device)
 
-                out = model(x, t)
+                out = model(x)
 
                 mse = MSE(out, y)
                 test_mse += mse.item()
