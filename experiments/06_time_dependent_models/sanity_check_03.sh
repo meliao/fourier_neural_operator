@@ -21,7 +21,7 @@ python -m experiments.06_time_dependent_models.train_models_sanity_check_1 \
 --test_data_fp ~/projects/fourier_neural_operator/data/2021-06-18_NLS_one_step_test.mat \
 --train_df ~/projects/fourier_neural_operator/experiments/06_time_dependent_models/results/03_sanity_check.txt \
 --model_fp ~/projects/fourier_neural_operator/experiments/06_time_dependent_models/models/03_sanity_check \
---results_fp ~/projects/fourier_neural_operator/experiments/06_time_dependent_models/03_sanity_check.txt \
+--results_fp ~/projects/fourier_neural_operator/experiments/06_time_dependent_models/second_sanity_check.txt \
 --freq_modes 8 \
 --time_subsample 1 \
 --epochs 500

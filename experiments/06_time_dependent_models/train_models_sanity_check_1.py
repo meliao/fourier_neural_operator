@@ -129,37 +129,37 @@ class TimeDataSet(torch.utils.data.Dataset):
         self.X = X
         self.t = torch.tensor(t_grid.flatten(), dtype=torch.float)
         self.x_grid = torch.tensor(x_grid, dtype=torch.float).view(-1, 1)
-        self.n_tsteps = self.t.shape[0]
+        self.n_tsteps = self.t.shape[0] - 1
         self.n_batches = self.X.shape[0]
-        self.time_indices = [ (i,j)  for j in range(self.n_tsteps) for i in range(j)]
-        self.n_t_pairs = len(self.time_indices)
-        self.dataset_len = self.n_t_pairs * self.n_batches
+#         self.time_indices = [ (i,j)  for j in range(self.n_tsteps) for i in range(j)]
+#         self.n_t_pairs = len(self.time_indices)
+        self.dataset_len = self.n_tsteps * self.n_batches
 
     def make_x_train(self, x_in):
         x_in = torch.view_as_real(torch.tensor(x_in, dtype=torch.cfloat))
-        y = torch.cat([x_in, self.x_grid], axis=-1)
+        y = torch.cat([x_in, self.x_grid], axis=1)
         return y
 
     def __getitem__(self, idx):
         idx_original = idx
-        t_idx = int(idx % self.n_t_pairs)
-        idx = int(idx // self.n_t_pairs)
+        t_idx = int(idx % self.n_tsteps)
+        idx = int(idx // self.n_tsteps)
         batch_idx = int(idx % self.n_batches)
-        start_time_idx, end_time_idx = self.time_indices[t_idx]
-        # print("IDX: {}, T_IDX: {}, B_IDX: {}, START_T_IDX: {}, END_T_IDX: {}".format(idx_original, t_idx, batch_idx, start_time_idx, end_time_idx))
-        x = self.make_x_train(self.X[batch_idx, start_time_idx]) #.reshape(self.output_shape)
-        y = self.X[batch_idx, end_time_idx] #.reshape(self.output_shape)
-        t = self.t[end_time_idx - start_time_idx]
+#         start_time_idx, end_time_idx = self.time_indices[t_idx]
+#         print("IDX: {}, T_IDX: {}, B_IDX: {}".format(idx_original, t_idx, batch_idx))
+        x = self.make_x_train(self.X[batch_idx, 0]) #.reshape(self.output_shape)
+        y = self.X[batch_idx, t_idx] #.reshape(self.output_shape)
+        t = self.t[t_idx]
         return x,y,t
 
     def __len__(self):
         return self.dataset_len
 
     def __repr__(self):
-        return "TimeDataSet with length {}, n_tsteps {}, n_t_pairs {}, n_batches {}".format(self.dataset_len,
+        return "TimeDataSet with length {}, n_tsteps {}, n_batches {}".format(self.dataset_len,
                                                                                             self.n_tsteps,
-                                                                                            self.n_t_pairs,
                                                                                             self.n_batches)
+
 
 def write_result_to_file(fp, missing_str='', **trial):
     """Write a line to a tab-separated file saving the results of a single
