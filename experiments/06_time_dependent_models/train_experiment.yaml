@@ -14,7 +14,7 @@ definitions:
     !SLURMQueue
       jobs_folder: experiments/06_time_dependent_models/jobs
       job_name_key: job_name
- #     fake_submission: true
+      fake_submission: true
 
   constants:
     data_loc: &DATA_LOC "~/projects/fourier_neural_operator/data/2021-06-11_NLS_data_02/NLS_data_seed_0.mat"
@@ -28,10 +28,11 @@ arguments:
   - !Scalar { name: data_fp, value: *DATA_LOC, prefix: "--data_fp" }
   - !Scalar { name: test_data_fp, value: *TEST_DATA_LOC, prefix: "--test_data_fp" }
   - !Scalar { name: results_fp, value: *RESULTS_FP, prefix: "--results_fp" }
+  - !Scalar { name: epochs, value: 500, prefix: "--epochs" }
 
   - !Range
     name: frequency_modes
-    values: [2, 4, 8, 16, 32, 64, 124]
+    values: [4, 8, 16, 32, 64, 124]
     prefix: "--freq_modes"
     metadata_rules: [ !SaveValueInMetadata { path: freq } ]
 
