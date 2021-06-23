@@ -139,7 +139,6 @@ class TimeDataSet(torch.utils.data.Dataset):
         super(TimeDataSet, self).__init__()
         assert X.shape[1] == t_grid.shape[-1]
         self.X = torch.tensor(X, dtype=torch.cfloat)
-        self.Xy = torch.tensor(X, dtype=torch.cfloat)
         self.t = torch.tensor(t_grid.flatten(), dtype=torch.float)
         self.x_grid = torch.tensor(x_grid, dtype=torch.float).view(-1, 1)
         self.n_tsteps = self.t.shape[0] - 1
@@ -155,13 +154,12 @@ class TimeDataSet(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         idx_original = idx
-        t_idx = int(idx % self.n_tsteps)
+        t_idx = int(idx % self.n_tsteps) + 1
         idx = int(idx // self.n_tsteps)
         batch_idx = int(idx % self.n_batches)
 #         start_time_idx, end_time_idx = self.time_indices[t_idx]
-#         print("IDX: {}, T_IDX: {}, B_IDX: {}".format(idx_original, t_idx, batch_idx))
         x = self.make_x_train(self.X[batch_idx, 0]) #.reshape(self.output_shape)
-        y = self.Xy[batch_idx, t_idx] #.reshape(self.output_shape)
+        y = self.X[batch_idx, t_idx] #.reshape(self.output_shape)
         t = self.t[t_idx]
         return x,y,t
 
