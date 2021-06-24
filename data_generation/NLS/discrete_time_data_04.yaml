@@ -1,14 +1,13 @@
 ---
 definitions:
-  command: "matlab -batch"
+  command: "/opt/matlab/bin/matlab -batch"
   template: generate_data_discrete_times_parallel.jinja
 
   copy_to_item: true
 
   default_arguments:
     logs_folder: logs/04/
-    partition: "general"
-    mem: "4000M"
+    partition: "contrib-cpu"
 
   submission:
     !SLURMQueue
@@ -17,7 +16,7 @@ definitions:
       #      fake_submission: true
 
   constants:
-    data_dir: &DATA_LOC "'/home/meliao/projects/fourier_neural_operator/data/2021-06-24_NLS_data_04/"
+    data_dir: &DATA_LOC "'/share/data/willett-group/meliao/data/2021-06-24_NLS_data_04/"
 
 arguments:
 
