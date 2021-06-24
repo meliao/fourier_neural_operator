@@ -227,35 +227,45 @@ def main(args):
     if not os.path.isdir(args.plots_dir):
         os.mkdir(args.plots_dir)
 
-    # df = pd.read_table(args.training_results)
-    # df = df.sort_values('modes')
-    # df = df[df['modes'] < 256]
-    #
-    # dd_sub = {100: 200,
-    #             450: 100,
-    #             1900: 50,
-    #             7800: 25,
-    #             49500: 10}
-    # df['sub'] = df['ntrain'].map(dd_sub)
-    # df = df.sort_values('sub')
-    #
-    # # df = df[df['ntrain'] < 256]
-    # df['experiment_str'] = ('modes_'
-    #                         + df['modes'].astype(str)
-    #                         + '_sub_'
-    #                         + df['ntrain'].astype(str)
-    #                         + 'NLS_1d')
-    #
-    # fp_training_results = os.path.join(args.plots_dir, 'FNO_NLS_test_performance.png')
-    # plt_df = df[['modes', 'sub', 'test_l2_normalized_error']].pivot(index='modes', columns='sub', values='test_l2_normalized_error')
-    # plot_heatmap(plt_df.values,
-    #                 plt_df.index.values,
-    #                 plt_df.columns.values,
-    #                 'FNO short-time test performance',
-    #                 '$log_{10}$ $L_2$-Normalized Error',
-    #                 fp_training_results)
-    # fp_training_results_t = os.path.join(args.plots_dir, 'FNO_NLS_training_times.png')
-    # make_training_results_plot_2(df, fp_training_results_t)
+    df = pd.read_table(args.training_results)
+    df = df.sort_values('modes')
+    df = df[df['modes'] < 256]
+
+    dd_sub = {100: 200,
+                450: 100,
+                1900: 50,
+                7800: 25,
+                49500: 10}
+    df['sub'] = df['ntrain'].map(dd_sub)
+    df = df.sort_values('sub')
+
+    # df = df[df['ntrain'] < 256]
+    df['experiment_str'] = ('modes_'
+                            + df['modes'].astype(str)
+                            + '_sub_'
+                            + df['ntrain'].astype(str)
+                            + 'NLS_1d')
+
+    fp_training_results = os.path.join(args.plots_dir, 'FNO_NLS_test_performance.png')
+    plt_df = df[['modes', 'sub', 'test_l2_normalized_error']].pivot(index='modes', columns='sub', values='test_l2_normalized_error')
+    plot_heatmap(plt_df.values,
+                    plt_df.index.values,
+                    plt_df.columns.values,
+                    'FNO short-time test performance',
+                    '$log_{10}$ $L_2$-Normalized Error',
+                    fp_training_results)
+
+    df['generalization_gap'] = df['test_mse'] - df['train_mse']
+    plt_df_2 = df[['modes', 'sub', 'generalization_gap']].pivot(index='modes', columns='sub', values='generalization_gap')
+    fp_gen_results = os.path.join(args.plots_dir, 'FNO_NLS_generalization_performance.png')
+    plot_heatmap(plt_df_2.values,
+                    plt_df_2.index.values,
+                    plt_df_2.columns.values,
+                    'Time-Dependent FNO Generalization Performance',
+                    '$log_{10}$ $MSE_{train} - MSE_{test}$',
+                    fp_gen_results)
+    fp_training_results_t = os.path.join(args.plots_dir, 'FNO_NLS_training_times.png')
+    make_training_results_plot_2(df, fp_training_results_t)
 
     X, t_grid = load_data(args.data_fp)
     logging.info("Loaded data from {}".format(args.data_fp))
@@ -293,10 +303,10 @@ def main(args):
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_fp', default="/home-nfs/meliao/projects/fourier_neural_operator/data/2021-06-11_NLS_data_02/NLS_data_seed_1.mat")
-    parser.add_argument('--plots_dir', default="/home-nfs/meliao/projects/fourier_neural_operator/experiments/06_time_dependent_models/plots/")
-    parser.add_argument('--training_results', default="/home-nfs/meliao/projects/fourier_neural_operator/experiments/06_time_dependent_models/experiment_results.txt")
-    parser.add_argument('--models_dir', default="/home-nfs/meliao/projects/fourier_neural_operator/experiments/06_time_dependent_models/models")
+    parser.add_argument('--data_fp', default="/home/owen/projects/fourier_neural_operator/data/2021-06-11_NLS_data_02/NLS_data_seed_1.mat")
+    parser.add_argument('--plots_dir', default="/home/owen/projects/fourier_neural_operator/experiments/06_time_dependent_models/plots/")
+    parser.add_argument('--training_results', default="/home/owen/projects/fourier_neural_operator/experiments/06_time_dependent_models/experiment_results.txt")
+    parser.add_argument('--models_dir', default="/home/owen/projects/fourier_neural_operator/experiments/06_time_dependent_models/models")
 
     args = parser.parse_args()
     fmt = "%(asctime)s:FNO: %(levelname)s - %(message)s"
