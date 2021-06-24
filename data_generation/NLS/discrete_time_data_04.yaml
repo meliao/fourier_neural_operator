@@ -1,0 +1,50 @@
+---
+definitions:
+  command: "matlab -batch"
+  template: generate_data_discrete_times_parallel.jinja
+
+  copy_to_item: true
+
+  default_arguments:
+    logs_folder: logs/04/
+    partition: "general"
+    mem: "8000M"
+
+  submission:
+    !SLURMQueue
+      jobs_folder: jobs/04/
+      job_name_key: job_name
+      #      fake_submission: true
+
+  constants:
+    data_dir: &DATA_LOC "'/home/meliao/projects/fourier_neural_operator/data/2021-06-24_NLS_data_04/"
+
+arguments:
+
+  - !Scalar { name: MAX_IC_FREQ, prefix: "MAX_IC_FREQ=", value: 5}
+  - !Scalar { name: N_X_POINTS, prefix: "N_X_POINTS=", value: 1024}
+  - !Scalar { name: N_TRAINING_EXAMPLES, prefix: "N_TRAINING_EXAMPLES=", value: 50}
+  - !Scalar { name: TMAX, prefix: "TMAX=", value: 20}
+  - !Scalar { name: STEP_SIZE, prefix: "STEP_SIZE=", value: 0.001}
+  - !Scalar { name: GAMMA, prefix: "GAMMA=", value: -1}
+  - !Scalar { name: SAVE_EVERY_N_STEPS, prefix: "SAVE_EVERY_N_STEPS=", value: 1000}
+  - !Scalar {name: gen_data_discrete_times_parallel , value: "generate_data_discrete_times_parallel "}
+
+  - !Range
+    name: SEED
+    start: 0
+    end: 25
+    prefix: "SEED="
+    metadata_rules: [ !SaveValueInMetadata { path: seed } ]
+
+  - !ArgumentFromMetadata
+    name: FP_OUT
+    prefix: "FP_OUT="
+    prepend: *DATA_LOC
+    format_rule: "NLS_data_seed_{seed}.mat'"
+    sources: [ {path: seed, destination: seed} ]
+
+  - !ArgumentFromMetadata
+    name: job_name
+    format_rule: "{seed}_data_gen"
+    sources: [ {path: seed, destination: seed} ]

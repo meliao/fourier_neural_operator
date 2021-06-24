@@ -43,5 +43,5 @@ for i=1:N_TRAINING_EXAMPLES
 end
 
 x = x_grid;
-t = 0:TMAX;
+t = linspace(0, TMAX, n_save_timepoints);
 save(FP_OUT, 'output', 'x', 't');
