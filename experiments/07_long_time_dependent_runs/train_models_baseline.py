@@ -307,7 +307,7 @@ def main(args):
         ########################################################
         # Intermediate testing and saving
         ########################################################
-        if ep % 10 == 0:
+        if ep % 50 == 0:
             test_mse = 0.
             test_l2_norm_error = 0.
             if not args.no_test:

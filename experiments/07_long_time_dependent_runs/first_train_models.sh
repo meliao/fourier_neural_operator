@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=00_test_job
+#SBATCH --job-name=00_time_dep
 #SBATCH --time=4:00:00
 #SBATCH --partition=contrib-gpu
 #SBATCH --output=experiments/07_long_time_dependent_runs/logs/00_time_dep.out
