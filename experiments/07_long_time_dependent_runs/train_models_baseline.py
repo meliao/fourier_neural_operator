@@ -307,7 +307,7 @@ def main(args):
         ########################################################
         # Intermediate testing and saving
         ########################################################
-        if ep % 100 == 0:
+        if ep % 10 == 0:
             test_mse = 0.
             test_l2_norm_error = 0.
             if not args.no_test:
@@ -333,6 +333,8 @@ def main(args):
                 test_dd['epoch'] = ep
 
                 write_result_to_file(args.test_df, **test_dd)
+                logging.info("Test: Epoch: {}, test_mse: {:.4f}".format(ep, test_mse))
+
             torch.save(model, args.model_fp.format(ep))
 
     torch.save(model, args.model_fp.format(epochs))
