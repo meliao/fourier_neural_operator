@@ -45,3 +45,4 @@ end
 x = x_grid;
 t = linspace(0, TMAX, n_save_timepoints);
 save(FP_OUT, 'output', 'x', 't');
+fprintf(1, 'Finished\n');
