@@ -2,7 +2,7 @@
 
 #SBATCH --job-name=00_time_dep
 #SBATCH --time=4:00:00
-#SBATCH --partition=contrib-gpu
+#SBATCH --partition=contrib-gpu-long
 #SBATCH --output=experiments/08_FNO_pretraining/logs/00_time_dep.out
 #SBATCH --error=experiments/08_FNO_pretraining/logs/00_time_dep.err
 #SBATCH --exclude=gpu-g16,gpu-g28,gpu-g29,gpu-g38
@@ -25,8 +25,8 @@ python -m experiments.08_FNO_pretraining.train_models \
 --train_df experiments/08_FNO_pretraining/results/00_time_dep_train.txt \
 --pretraining_train_df experiments/08_FNO_pretraining/results/00_pretrain_train.txt \
 --pretraining_test_df experiments/08_FNO_pretraining/results/00_pretrain_test.txt \
---test_df experiments/07_long_time_dependent_runs/results/00_time_dep_test.txt \
+--test_df experiments/08_FNO_pretraining/results/00_time_dep_test.txt \
 --freq_modes 8 \
 --time_subsample 1 \
---epochs 10 \
---pretraining_epochs 20
+--epochs 500 \
+--pretraining_epochs 500
