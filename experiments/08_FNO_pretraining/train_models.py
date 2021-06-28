@@ -364,9 +364,10 @@ def train_loop(model, optimizer, scheduler, epochs, device, train_data_loader, t
 
                 write_result_to_file(test_df, **test_dd)
                 logging.info("Test: Epoch: {}, test_mse: {:.4f}".format(ep, test_mse))
-            torch.save(model, model_fp.format(ep))
+            torch.save(model, model_path.format(ep))
 
-    torch.save(model, model_fp.format(epochs))
+    torch.save(model, model_path.format(epochs))
+    return model
 
 
 def FNO_pretraining(args, device, batch_size=1024, learning_rate=0.001, step_size=100, gamma=0.5):
