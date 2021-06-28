@@ -1,6 +1,6 @@
 ---
 definitions:
-  command: "/opt/matlab/bin/matlab -batch"
+  command: "/opt/matlab/bin/matlab -r"
   template: generate_data_discrete_times_parallel.jinja
 
   copy_to_item: true
