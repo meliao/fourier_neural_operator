@@ -328,7 +328,7 @@ def train_loop(model, optimizer, scheduler, start_epoch, end_epoch, device, trai
 
     train_dd = {}
     test_dd = {}
-    logging.info("Beginning training for {} epochs".format(epochs))
+    logging.info("Beginning training for {} epochs".format(end_epoch - start_epoch))
 
     model.train()
     t0_train = default_timer()
@@ -455,8 +455,9 @@ def FNO_pretraining(args, device, batch_size=1024, learning_rate=0.001, step_siz
     optimizer = torch.optim.Adam(model.parameters())
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
                                                     step_size=step_size,
-                                                    gamma=gamma,
-                                                    last_epoch=n_epochs)
+                                                    gamma=gamma)
+    for fake_ep in range(n_epochs):
+         scheduler.step()
 
     ##################################################################
     # Call training loop
@@ -522,8 +523,9 @@ def time_dependent_training(args, device, results_dd, model, batch_size=1024, le
     optimizer = torch.optim.Adam(model.parameters())
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
                                                 step_size=step_size,
-                                                gamma=gamma,
-                                                last_epoch=args.pretraining_epochs)
+                                                gamma=gamma)
+    for fake_ep in range(args.pretraining_epochs):
+        scheduler.step()
 
     ##################################################################
     # Call training loop
