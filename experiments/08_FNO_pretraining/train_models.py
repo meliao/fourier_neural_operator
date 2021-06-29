@@ -19,6 +19,7 @@ import operator
 from functools import reduce
 from functools import partial
 from timeit import default_timer
+import re
 
 torch.manual_seed(0)
 np.random.seed(0)
@@ -251,15 +252,42 @@ def l2_normalized_error(pred, actual):
     actual_norms = torch.linalg.norm(actual, dim=1, ord=2)
     return torch.mean(torch.divide(error_norms, actual_norms))
 
-def load_or_init_model(fp, device, model_type, config):
-    if fp is not None and os.path.isfile(fp):
+def find_a_model(pattern):
+    model_dir = os.path.join(*pattern.split("/")[:-1])
+    file_pattern = pattern.replace("{}", "(.*)")
+    file_pattern_re = re.compile(file_pattern)
+    best_n_epochs = -1
+    fp = None
+    model_lst = [os.path.join(model_dir, f) for f in os.listdir(model_dir)]
+    for m_fp in model_lst:
+        search_obj = file_pattern_re.search(m_fp)
+        if search_obj is not None:
+            n_epochs = int(search_obj.group(1))
+            if n_epochs > best_n_epochs:
+                best_n_epochs = n_epochs
+                fp = m_fp
+    if fp is None:
+        raise ValueError("Could not find any matching models")
+    return fp, best_n_epochs
+
+def load_or_init_model(device, model_type, fp=None, pattern=None, config=None):
+    if fp is not None:
         model = torch.load(fp).to(device)
         logging.info("Loaded model from: {}".format(fp))
+        n_epochs = 0
+    elif pattern is not None:
+        fp, n_epochs = find_a_model(pattern)
+        model = torch.load(fp).to(device)
+        logging.info("Loaded model from: {}".format(fp))
+        logging.info("Model already trained with {} epochs".format(n_epochs))
     else:
         model = model_type(**config).to(device)
         logging.info("Initialized new model of type: {}".format(fp))
+        n_epochs = 0
 
-    return model
+    assert type(model) == model_type
+
+    return model, n_epochs
 
 def train_loop(model, optimizer, scheduler, epochs, device, train_data_loader, train_df, do_testing,
                 test_every_n, test_data_loader, test_df, model_path):
@@ -418,9 +446,17 @@ def FNO_pretraining(args, device, batch_size=1024, learning_rate=0.001, step_siz
     # initialize model and optimizer
     ##################################################################
     model_params = {'width': args.width, 'modes':args.freq_modes}
-    model = load_or_init_model(None, device, FNO1dComplexTime, model_params)
+
+    model, n_epochs = load_or_init_model(device=device,
+                                            model_type=FNO1dComplexTime,
+                                            pattern=args.pretraining_model_fp,
+                                            config=model_params)
+
     optimizer = torch.optim.Adam(model.parameters())
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
+                                                    step_size=step_size,
+                                                    gamma=gamma,
+                                                    last_epoch=n_epochs)
 
     ##################################################################
     # Call training loop
@@ -429,12 +465,12 @@ def FNO_pretraining(args, device, batch_size=1024, learning_rate=0.001, step_siz
     pretrained_model = train_loop(model=model,
                                     optimizer=optimizer,
                                     scheduler=scheduler,
-                                    epochs=args.pretraining_epochs,
+                                    epochs=args.pretraining_epochs - n_epochs,
                                     device=device,
                                     train_data_loader=train_data_loader,
                                     train_df=args.pretraining_train_df,
                                     do_testing=(not args.no_test),
-                                    test_every_n=100,
+                                    test_every_n=50,
                                     test_data_loader=test_data_loader,
                                     test_df=args.pretraining_test_df,
                                     model_path=args.pretraining_model_fp)
@@ -483,24 +519,27 @@ def time_dependent_training(args, device, results_dd, model, batch_size=1024, le
     # initialize optimizer
     ##################################################################
     optimizer = torch.optim.Adam(model.parameters())
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
+                                                step_size=step_size,
+                                                gamma=gamma,
+                                                last_epoch=args.pretraining_epochs)
 
     ##################################################################
     # Call training loop
     ##################################################################
     logging.info("Starting Time-Dependent training")
     model = train_loop(model=model,
-                                    optimizer=optimizer,
-                                    scheduler=scheduler,
-                                    epochs=args.epochs,
-                                    device=device,
-                                    train_data_loader=train_data_loader,
-                                    train_df=args.train_df,
-                                    do_testing=True,
-                                    test_every_n=50,
-                                    test_data_loader=test_data_loader,
-                                    test_df=args.test_df,
-                                    model_path=args.model_fp)
+                        optimizer=optimizer,
+                        scheduler=scheduler,
+                        epochs=args.epochs,
+                        device=device,
+                        train_data_loader=train_data_loader,
+                        train_df=args.train_df,
+                        do_testing=True,
+                        test_every_n=25,
+                        test_data_loader=test_data_loader,
+                        test_df=args.test_df,
+                        model_path=args.model_fp)
     return model
 
 def main(args):

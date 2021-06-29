@@ -28,5 +28,5 @@ python -m experiments.08_FNO_pretraining.train_models \
 --test_df experiments/08_FNO_pretraining/results/00_time_dep_test.txt \
 --freq_modes 8 \
 --time_subsample 1 \
---epochs 500 \
---pretraining_epochs 500
+--epochs 1000 \
+--pretraining_epochs 1000
