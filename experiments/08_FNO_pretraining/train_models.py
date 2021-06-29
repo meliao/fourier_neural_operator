@@ -289,7 +289,7 @@ def load_or_init_model(device, model_type, fp=None, pattern=None, config=None):
 
     return model, n_epochs
 
-def train_loop(model, optimizer, scheduler, epochs, device, train_data_loader, train_df, do_testing,
+def train_loop(model, optimizer, scheduler, start_epoch, end_epoch, device, train_data_loader, train_df, do_testing,
                 test_every_n, test_data_loader, test_df, model_path):
     """This is the main training loop
 
@@ -332,7 +332,7 @@ def train_loop(model, optimizer, scheduler, epochs, device, train_data_loader, t
 
     model.train()
     t0_train = default_timer()
-    for ep in range(epochs):
+    for ep in range(start_epoch, end_epoch):
         # model.train()
         t1 = default_timer()
         train_mse = 0
@@ -394,7 +394,7 @@ def train_loop(model, optimizer, scheduler, epochs, device, train_data_loader, t
                 logging.info("Test: Epoch: {}, test_mse: {:.4f}".format(ep, test_mse))
             torch.save(model, model_path.format(ep))
 
-    torch.save(model, model_path.format(epochs))
+    torch.save(model, model_path.format(end_epoch))
     return model
 
 
@@ -465,7 +465,8 @@ def FNO_pretraining(args, device, batch_size=1024, learning_rate=0.001, step_siz
     pretrained_model = train_loop(model=model,
                                     optimizer=optimizer,
                                     scheduler=scheduler,
-                                    epochs=args.pretraining_epochs - n_epochs,
+                                    start_epoch=n_epochs,
+                                    end_epoch=args.pretraining_epochs,
                                     device=device,
                                     train_data_loader=train_data_loader,
                                     train_df=args.pretraining_train_df,
@@ -531,7 +532,8 @@ def time_dependent_training(args, device, results_dd, model, batch_size=1024, le
     model = train_loop(model=model,
                         optimizer=optimizer,
                         scheduler=scheduler,
-                        epochs=args.epochs,
+                        start_epoch=0,
+                        end_epoch=args.epochs,
                         device=device,
                         train_data_loader=train_data_loader,
                         train_df=args.train_df,
