@@ -524,6 +524,7 @@ def time_dependent_training(args, device, results_dd, model, batch_size=1024, le
     ##################################################################
     # initialize optimizer
     ##################################################################
+    logging.info("Initializing optimizer with learning rate: {}".format(learning_rate))
     optimizer = torch.optim.Adam(model.parameters(), learning_rate=learning_rate)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
                                                 step_size=step_size,
@@ -564,7 +565,9 @@ def main(args):
     #  Time-dependent training
     ################################################################
 
-    model, results_dd = time_dependent_training(args, device, results_dd, model, learning_rate=args.learning_rate)
+    lr = (10 ** args.lr_exp)
+
+    model, results_dd = time_dependent_training(args, device, results_dd, model, learning_rate=lr)
 
     if args.results_fp is not None:
         write_result_to_file(args.results_fp, **results_dd)
@@ -588,7 +591,7 @@ if __name__ == '__main__':
     parser.add_argument('--pretraining_model_fp')
     parser.add_argument('--pretraining_train_df')
     parser.add_argument('--pretraining_test_df')
-    parser.add_argument('--learning_rate', type=float, default=0.001)
+    parser.add_argument('--lr_exp', type=int, default=-3)
     parser.add_argument('--epochs', type=int)
     parser.add_argument('--pretraining_epochs', type=int)
     parser.add_argument('--freq_modes', type=int, default=16)
