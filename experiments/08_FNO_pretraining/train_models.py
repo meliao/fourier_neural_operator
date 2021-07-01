@@ -395,6 +395,8 @@ def train_loop(model, optimizer, scheduler, start_epoch, end_epoch, device, trai
             torch.save(model, model_path.format(ep))
 
     torch.save(model, model_path.format(end_epoch))
+    results_dd['train_mse'] = train_mse
+    results_dd['test_mse'] = test_mse
     return model
 
 
@@ -436,7 +438,7 @@ def FNO_pretraining(args, device, batch_size=1024, learning_rate=0.001, step_siz
 
         test_dataset = OneStepDataSet(usol_test, t_grid_test, x_grid_test)
         logging.info("Test Dataset: {}".format(test_dataset))
-        results_dd['ntest'] = len(test_dataset)
+        results_dd['pretrain_ntest'] = len(test_dataset)
 
         test_data_loader = torch.utils.data.DataLoader(test_dataset,
                                                         batch_size=batch_size,
@@ -451,8 +453,9 @@ def FNO_pretraining(args, device, batch_size=1024, learning_rate=0.001, step_siz
                                             model_type=FNO1dComplexTime,
                                             pattern=args.pretraining_model_fp,
                                             config=model_params)
+    results_dd.update(model_params)
 
-    optimizer = torch.optim.Adam(model.parameters())
+    optimizer = torch.optim.Adam(model.parameters(), learning_rate=learning_rate)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
                                                     step_size=step_size,
                                                     gamma=gamma)
@@ -475,7 +478,8 @@ def FNO_pretraining(args, device, batch_size=1024, learning_rate=0.001, step_siz
                                     test_every_n=50,
                                     test_data_loader=test_data_loader,
                                     test_df=args.pretraining_test_df,
-                                    model_path=args.pretraining_model_fp)
+                                    model_path=args.pretraining_model_fp,
+                                    results_dd=results_dd)
     return pretrained_model, results_dd
 
 def time_dependent_training(args, device, results_dd, model, batch_size=1024, learning_rate=0.001, step_size=100, gamma=0.5):
@@ -493,7 +497,7 @@ def time_dependent_training(args, device, results_dd, model, batch_size=1024, le
 
     train_dataset = TimeDataSet(usol, t_grid, x_grid)
     logging.info("Dataset: {}".format(train_dataset))
-    results_dd['pretrain_ntrain'] = len(train_dataset)
+    results_dd['ntrain'] = len(train_dataset)
 
     train_data_loader = torch.utils.data.DataLoader(train_dataset,
                                                     batch_size=batch_size,
@@ -520,12 +524,12 @@ def time_dependent_training(args, device, results_dd, model, batch_size=1024, le
     ##################################################################
     # initialize optimizer
     ##################################################################
-    optimizer = torch.optim.Adam(model.parameters())
+    optimizer = torch.optim.Adam(model.parameters(), learning_rate=learning_rate)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
                                                 step_size=step_size,
                                                 gamma=gamma)
-    for fake_ep in range(args.pretraining_epochs):
-        scheduler.step()
+
+    results_dd['learning_rate'] = learning_rate
 
     ##################################################################
     # Call training loop
@@ -544,7 +548,7 @@ def time_dependent_training(args, device, results_dd, model, batch_size=1024, le
                         test_data_loader=test_data_loader,
                         test_df=args.test_df,
                         model_path=args.model_fp)
-    return model
+    return model, resutlts_dd
 
 def main(args):
     # Figure out CUDA
@@ -560,7 +564,14 @@ def main(args):
     #  Time-dependent training
     ################################################################
 
-    model = time_dependent_training(args, device, results_dd, model)
+    model, results_dd = time_dependent_training(args, device, results_dd, model, learning_rate=args.learning_rate)
+
+    if args.results_fp is not None:
+        write_result_to_file(args.results_fp, **results_dd)
+        logging.info("Wrote results to {}".format(args.results_fp))
+    else:
+        logging.info("No results_fp specified, so here are the results")
+        logging.info(results_dd)
 
     logging.info("Finished")
 
@@ -569,6 +580,7 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_fp')
+    parser.add_argument('--results_fp')
     parser.add_argument('--test_data_fp')
     parser.add_argument('--model_fp')
     parser.add_argument('--train_df')
@@ -576,6 +588,7 @@ if __name__ == '__main__':
     parser.add_argument('--pretraining_model_fp')
     parser.add_argument('--pretraining_train_df')
     parser.add_argument('--pretraining_test_df')
+    parser.add_argument('--learning_rate', type=float, default=0.001)
     parser.add_argument('--epochs', type=int)
     parser.add_argument('--pretraining_epochs', type=int)
     parser.add_argument('--freq_modes', type=int, default=16)

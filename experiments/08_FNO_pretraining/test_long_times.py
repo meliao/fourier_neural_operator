@@ -160,15 +160,11 @@ def plot_one_testcase_heatmap_T(preds, solns, model_name, fp=None):
     plt.close(fig)
 
 
-def plot_time_errors(b_errors, time_dep_ic_errors, pretrained_errors, t_grid, title, fp):
+def plot_time_errors(errors_dd, t_grid, title, fp):
 
     n_t_steps = t_grid.shape[1]
     x_vals = t_grid.flatten()
-    errors_dd = {'FNO baseline': b_errors,
-            'Time-dependent model': time_dep_ic_errors,
-            'Pretrained FNO': pretrained_errors
-            # 'Time-dependent composed': time_dep_comp_errors
-            }
+
     for k, v in errors_dd.items():
         # print("{}: {}: {}".format(k, v.shape, v))
         v_means = np.mean(v, axis=0)
@@ -332,11 +328,17 @@ def main(args):
     baseline_errors = baseline_dd['errors']['comp']
     time_dep_errors = time_dep_dd['errors']['from_ic']
     pretrained_errors = pretrained_dd['errors']['from_ic']
+    pretrained_comp_errors = pretrained_dd['errors']['comp']
+
+    errors_dd_0 = {'FNO baseline': baseline_errors[:, :15],
+            'Time-dependent model': time_dep_errors[:, :15],
+            'Pretrained FNO from IC': pretrained_errors[:, :15],
+            # 'Pretrained FNO composition': pretrained_comp_errors[:, :15]
+            # 'Time-dependent composed': time_dep_comp_errors
+            }
 
     fp_time_errors = os.path.join(args.plots_dir, 'time_errors.png')
-    plot_time_errors(baseline_errors[:, :15],
-                        time_dep_errors[:,:15],
-                        pretrained_errors[:,:15],
+    plot_time_errors(errors_dd_0,
                         t_grid[:, :15],
                         'FNO Baseline vs. Time-Dependent Model',
                         fp_time_errors)
@@ -344,11 +346,15 @@ def main(args):
     baseline_outlier_removal = np.delete(baseline_errors, [59], axis=0)
     time_dep_outlier_removal = np.delete(time_dep_errors, [59], axis=0)
     pretrained_outlier_removal = np.delete(pretrained_errors, [59], axis=0)
+    pretrained_comp_outlier_removal = np.delete(pretrained_comp_errors, [59], axis=0)
+    errors_dd_1 = {'FNO baseline': baseline_outlier_removal,
+                    'Time-dependent model': time_dep_outlier_removal,
+                    'Pretrained FNO from IC': pretrained_outlier_removal,
+                    # 'Pretrained FNO composition': pretrained_comp_outlier_removal
+                    }
     print(time_dep_outlier_removal.shape)
     fp_outlier_removal = os.path.join(args.plots_dir, 'time_errors_outlier_removal.png')
-    plot_time_errors(baseline_outlier_removal,
-                        time_dep_outlier_removal,
-                        pretrained_outlier_removal,
+    plot_time_errors(errors_dd_1,
                         t_grid[:, :-1],
                         'FNO Baseline vs. Time-Dependent Models',
                         fp_outlier_removal)
@@ -366,11 +372,8 @@ if __name__ == '__main__':
     parser.add_argument('--df_time_dep_test', default="~/projects/fourier_neural_operator/experiments/08_FNO_pretraining/results/00_time_dep_test.txt")
     parser.add_argument('--baseline_model', default="/home/owen/projects/fourier_neural_operator/experiments/07_long_time_dependent_runs/models/01_baseline_ep_1000")
     parser.add_argument('--time_dep_model', default="/home/owen/projects/fourier_neural_operator/experiments/07_long_time_dependent_runs/models/00_time_dep_ep_1000")
-    parser.add_argument('--pretrained_model', default="/home/owen/projects/fourier_neural_operator/experiments/08_FNO_pretraining/models/00_time_dep_ep_500")
-    # parser.add_argument('--baseline_data', default='/home/owen/projects/fourier_neural_operator/experiments/05_NLS_composition_baseline/plots/predictions_and_errors.mat')
+    parser.add_argument('--pretrained_model', default="/home/owen/projects/fourier_neural_operator/experiments/08_FNO_pretraining/models/00_time_dep_ep_1000")
     parser.add_argument('--plots_dir', default="/home/owen/projects/fourier_neural_operator/experiments/08_FNO_pretraining/plots/")
-    # parser.add_argument('--training_results', default="/home/owen/projects/fourier_neural_operator/experiments/06_time_dependent_models/experiment_results.txt")
-    # parser.add_argument('--models_dir', default="/home/owen/projects/fourier_neural_operator/experiments/06_time_dependent_models/models")
 
     args = parser.parse_args()
     fmt = "%(asctime)s:FNO: %(levelname)s - %(message)s"
