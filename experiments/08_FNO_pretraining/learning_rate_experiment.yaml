@@ -1,65 +1,80 @@
 ---
 definitions:
-  command: "python -m experiments.06_time_dependent_models.train_models"
+  command: "python -m experiments.08_FNO_pretraining.train_model"
   template: train.jinja
 
   copy_to_item: true
 
   default_arguments:
     job_walltime: "4:00:00"
-    logs_folder: experiments/06_time_dependent_models/logs
+    logs_folder: experiments/08_FNO_pretraining/logs
     partition: "contrib-gpu"
 
   submission:
     !SLURMQueue
-      jobs_folder: experiments/06_time_dependent_models/jobs
+      jobs_folder: experiments/08_FNO_pretraining/jobs
       job_name_key: job_name
       fake_submission: true
 
   constants:
-    data_loc: &DATA_LOC "~/projects/fourier_neural_operator/data/2021-06-11_NLS_data_02/NLS_data_seed_0.mat"
-    test_data_loc: &TEST_DATA_LOC "~/projects/fourier_neural_operator/data/2021-06-11_NLS_data_02/NLS_data_seed_1.mat"
-    save_dir: &SAVE_DIR "~/projects/fourier_neural_operator/experiments/06_time_dependent_models/models"
-    results_fp: &RESULTS_FP "~/projects/fourier_neural_operator/experiments/06_time_dependent_models/experiment_results.txt"
-    train_df_dir: &TRAIN_DF_DIR "~/projects/fourier_neural_operator/experiments/06_time_dependent_models/results"
+    data_loc: &DATA_LOC "/share/data/willett-group/meliao/data/2021-06-24_NLS_data_04_train.mat"
+    test_data_loc: &TEST_DATA_LOC "/share/data/willett-group/meliao/data/2021-06-24_NLS_data_04_test.mat"
+    models_dir: &MODELS_DIR "~/projects/fourier_neural_operator/experiments/08_FNO_pretraining/models"
+    pretrained_model_fp: &PRETRAINED_FP "experiments/08_FNO_pretraining/models/00_pretrain_ep_{}"
+    results_fp: &RESULTS_FP "~/projects/fourier_neural_operator/experiments/08_FNO_pretraining/experiment_results.txt"
+    train_df_dir: &DF_DIR "~/projects/fourier_neural_operator/experiments/08_FNO_pretraining/results"
 
 arguments:
 
   - !Scalar { name: data_fp, value: *DATA_LOC, prefix: "--data_fp" }
   - !Scalar { name: test_data_fp, value: *TEST_DATA_LOC, prefix: "--test_data_fp" }
   - !Scalar { name: results_fp, value: *RESULTS_FP, prefix: "--results_fp" }
-  - !Scalar { name: epochs, value: 500, prefix: "--epochs" }
+  - !Scalar { name: epochs, value: 1000, prefix: "--epochs" }
+  - !Scalar { name: time_subsample, value: 1, prefix: "--time_subsample" }
+  - !Scalar { name: freq_modes, value: 8, prefix: "--freq_modes" }
 
   - !Range
-    name: frequency_modes
-    values: [4, 8, 16, 32, 64, 124]
-    prefix: "--freq_modes"
-    metadata_rules: [ !SaveValueInMetadata { path: freq } ]
+    name: lr_exp
+    values: ["-5", "-4", "-3", "-2", "-1", "0", "1", "2", "3"]
+    prefix: "--lr_exp"
+    metadata_rules: [ !SaveValueInMetadata { path: lr_exp } ]
 
-  - !Range
-    name: time_subsample
-    values: [10, 25, 50, 100, 200]
-    prefix: "--time_subsample"
-    metadata_rules: [ !SaveValueInMetadata { path: sub } ]
+  - !ArgumentFromMetadata
+    name: pretraining_train_df
+    prefix: "--pretraining_train_df"
+    prepend: *DF_DIR 
+    format_rule: "lr_exp_{lr_exp}_pretraining_train.txt"
+    sources: [ {path: lr_exp, destination: lr_exp}]
+
+  - !ArgumentFromMetadata
+    name: pretraining_test_df
+    prefix: "--pretraining_test_df"
+    prepend: *DF_DIR 
+    format_rule: "lr_exp_{lr_exp}_pretraining_test.txt"
+    sources: [ {path: lr_exp, destination: lr_exp}]
+
+  - !ArgumentFromMetadata
+    name: train_df
+    prefix: "--train_df"
+    prepend: *DF_DIR 
+    format_rule: "lr_exp_{lr_exp}_train.txt"
+    sources: [ {path: lr_exp, destination: lr_exp}]
+
+  - !ArgumentFromMetadata
+    name: test_df
+    prefix: "--test_df"
+    prepend: *DF_DIR 
+    format_rule: "lr_exp_{lr_exp}_test.txt"
+    sources: [ {path: lr_exp, destination: lr_exp}]
 
   - !ArgumentFromMetadata
     name: model_fp
     prefix: "--model_fp"
-    prepend: *SAVE_DIR
-    format_rule: "freq_{freq}_sub_{sub}_NLS_1d"
-    sources: [ {path: freq, destination: freq},
-                {path: sub, destination: sub}]
-
-  - !ArgumentFromMetadata
-    name: train_df_fp
-    prefix: "--train_df"
-    prepend: *TRAIN_DF_DIR
-    format_rule: "freq_{freq}_sub_{sub}_NLS_1d.txt"
-    sources: [ {path: freq, destination: freq},
-                {path: sub, destination: sub}]
+    prepend: *MODELS_DIR
+    format_rule: "lr_exp_{lr_exp}_ep_{{}}"
+    sources: [ {path: lr_exp, destination: lr_exp}]
 
   - !ArgumentFromMetadata
     name: job_name
-    format_rule: "freq_{freq}_sub_{sub}_NLS_1d"
-    sources: [ {path: freq, destination: freq},
-                {path: sub, destination: sub}]
+    format_rule: "train_lr_exp_{lr_exp}"
+    sources: [ {path: lr_exp, destination: lr_exp}]

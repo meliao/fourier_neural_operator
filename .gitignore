@@ -1,6 +1,6 @@
 # Anything from HPC job submission
 logs/*
-jobs/*
+jobs/
 
 *.err
 *.out
