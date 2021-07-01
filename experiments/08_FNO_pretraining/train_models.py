@@ -290,7 +290,7 @@ def load_or_init_model(device, model_type, fp=None, pattern=None, config=None):
     return model, n_epochs
 
 def train_loop(model, optimizer, scheduler, start_epoch, end_epoch, device, train_data_loader, train_df, do_testing,
-                test_every_n, test_data_loader, test_df, model_path):
+                test_every_n, test_data_loader, test_df, model_path, results_dd):
     """This is the main training loop
 
     Parameters
@@ -395,8 +395,9 @@ def train_loop(model, optimizer, scheduler, start_epoch, end_epoch, device, trai
             torch.save(model, model_path.format(ep))
 
     torch.save(model, model_path.format(end_epoch))
-    results_dd['train_mse'] = train_mse
-    results_dd['test_mse'] = test_mse
+    if end_epoch - start_epoch > 0:
+        results_dd['train_mse'] = train_mse
+        results_dd['test_mse'] = test_mse
     return model
 
 
@@ -455,7 +456,7 @@ def FNO_pretraining(args, device, batch_size=1024, learning_rate=0.001, step_siz
                                             config=model_params)
     results_dd.update(model_params)
 
-    optimizer = torch.optim.Adam(model.parameters(), learning_rate=learning_rate)
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
                                                     step_size=step_size,
                                                     gamma=gamma)
@@ -525,7 +526,7 @@ def time_dependent_training(args, device, results_dd, model, batch_size=1024, le
     # initialize optimizer
     ##################################################################
     logging.info("Initializing optimizer with learning rate: {}".format(learning_rate))
-    optimizer = torch.optim.Adam(model.parameters(), learning_rate=learning_rate)
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
                                                 step_size=step_size,
                                                 gamma=gamma)
@@ -548,7 +549,8 @@ def time_dependent_training(args, device, results_dd, model, batch_size=1024, le
                         test_every_n=25,
                         test_data_loader=test_data_loader,
                         test_df=args.test_df,
-                        model_path=args.model_fp)
+                        model_path=args.model_fp,
+                        results_dd=results_dd)
     return model, resutlts_dd
 
 def main(args):
