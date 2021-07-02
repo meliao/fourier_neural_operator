@@ -11,9 +11,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 # import torch.fft as fft
 from torch.nn.parameter import Parameter
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import scipy.io as sio
-import h5py
+# import h5py
 
 import operator
 from functools import reduce
@@ -136,9 +136,9 @@ class FNO1dComplexTime(nn.Module):
         return torch.view_as_complex(x)
 
 
-class TimeDataSet(torch.utils.data.Dataset):
-    def __init__(self, X, t_grid, x_grid):
-        super(TimeDataSet, self).__init__()
+class TimeDataSetResiduals(torch.utils.data.Dataset):
+    def __init__(self, X, t_grid, x_grid, emulator):
+        super(TimeDataSetResiduals, self).__init__()
         assert X.shape[1] == t_grid.shape[-1]
         self.X = torch.tensor(X, dtype=torch.cfloat)
         self.t = torch.tensor(t_grid.flatten(), dtype=torch.float)
@@ -146,65 +146,59 @@ class TimeDataSet(torch.utils.data.Dataset):
         self.n_tsteps = self.t.shape[0] - 1
         self.n_batches = self.X.shape[0]
         self.dataset_len = self.n_tsteps * self.n_batches
+        self.emulator = emulator
+        self.make_composed_predictions()
 
-    def make_x_train(self, x_in):
-        x_in = torch.view_as_real(x_in)
-        y = torch.cat([x_in, self.x_grid], axis=1)
-        return y
+    def make_composed_predictions(self):
+        t_interval = self.t[1]
+        n_tsteps = self.X.shape[1]
+        t_tensor = torch.tensor(t_interval, dtype=torch.float).repeat([self.n_batches, 1,1])
+        preds = np.zeros(self.X.shape, dtype=np.cfloat)
+
+        # The IC is at time 0
+        preds[:,0] = self.X[:,0]
+
+        comp_input_i = self.make_x_train(self.X[:,0])
+        for i in range(1, n_tsteps):
+            comp_preds_i = self.emulator(comp_input_i, t_tensor).detach().numpy()
+            preds[:,i] = comp_preds_i
+            comp_input_i = self.make_x_train(comp_preds_i)
+        self.emulator_preds = preds
+
+    def make_x_train(self, X, single_batch=False):
+        # X has shape (nbatch, 1, grid_size)
+        n_batches = X.shape[0] if len(X.shape) > 1 else 1
+
+        # Convert to tensor
+        X_input = torch.view_as_real(torch.tensor(X, dtype=torch.cfloat))
+
+
+        if single_batch:
+            X_input = torch.cat((X_input, self.x_grid), dim=1)
+        else:
+            x_grid_i = self.x_grid.repeat(n_batches, 1, 1)
+            X_input = torch.cat((X_input.view((n_batches, -1, 2)), x_grid_i), axis=2)
+
+        return X_input
 
     def __getitem__(self, idx):
         idx_original = idx
         t_idx = int(idx % self.n_tsteps) + 1
         idx = int(idx // self.n_tsteps)
         batch_idx = int(idx % self.n_batches)
-        x = self.make_x_train(self.X[batch_idx, 0]) #.reshape(self.output_shape)
+        x = self.make_x_train(self.X[batch_idx, 0], single_batch=True) #.reshape(self.output_shape)
         y = self.X[batch_idx, t_idx] #.reshape(self.output_shape)
+        preds = self.emulator_preds[batch_idx, t_idx]
         t = self.t[t_idx]
-        return x,y,t
+        return x,y,t,preds
 
     def __len__(self):
         return self.dataset_len
 
     def __repr__(self):
-        return "TimeDataSet with length {}, n_tsteps {}, n_batches {}".format(self.dataset_len,
+        return "TimeDataSetResiduals with length {}, n_tsteps {}, n_batches {}".format(self.dataset_len,
                                                                                             self.n_tsteps,
                                                                                             self.n_batches)
-
-
-class OneStepDataSet(torch.utils.data.Dataset):
-    def __init__(self, X, t_grid, x_grid):
-        super(OneStepDataSet, self).__init__()
-        assert X.shape[1] == t_grid.shape[-1]
-        self.X = torch.tensor(X, dtype=torch.cfloat)
-        self.t = torch.tensor(t_grid.flatten(), dtype=torch.float)
-        self.x_grid = torch.tensor(x_grid, dtype=torch.float).view(-1, 1)
-        self.n_tsteps = self.t.shape[0] - 1
-        self.n_batches = self.X.shape[0]
-        self.dataset_len = self.n_tsteps * self.n_batches
-
-    def make_x_train(self, x_in):
-        x_in = torch.view_as_real(x_in)
-        y = torch.cat([x_in, self.x_grid], axis=1)
-        return y
-
-    def __getitem__(self, idx):
-        idx_original = idx
-        t_idx = int(idx % self.n_tsteps) + 1
-        idx = int(idx // self.n_tsteps)
-        batch_idx = int(idx % self.n_batches)
-        x = self.make_x_train(self.X[batch_idx, t_idx - 1]) #.reshape(self.output_shape)
-        y = self.X[batch_idx, t_idx] #.reshape(self.output_shape)
-        t = self.t[1]
-        return x, y, t
-
-    def __len__(self):
-        return self.dataset_len
-
-    def __repr__(self):
-        return "OneStepDataSet with length {}, n_tsteps {}, n_batches {}".format(self.dataset_len,
-                                                                                            self.n_tsteps,
-                                                                                            self.n_batches)
-
 
 def write_result_to_file(fp, missing_str='', **trial):
     """Write a line to a tab-separated file saving the results of a single
@@ -246,6 +240,7 @@ def l2_normalized_error(pred, actual):
     actual_norms = torch.linalg.norm(actual, dim=1, ord=2)
     return torch.mean(torch.divide(error_norms, actual_norms))
 
+
 def find_a_model(pattern):
     model_dir = os.path.join(*pattern.split("/")[:-1])
     file_pattern = pattern.replace("{}", "(.*)")
@@ -264,28 +259,31 @@ def find_a_model(pattern):
         raise ValueError("Could not find any matching models")
     return fp, best_n_epochs
 
+
 def load_or_init_model(device, model_type, fp=None, pattern=None, config=None):
     if fp is not None:
-        model = torch.load(fp).to(device)
+        model = torch.load(fp, map_location=device)
         logging.info("Loaded model from: {}".format(fp))
         n_epochs = 0
     elif pattern is not None:
         fp, n_epochs = find_a_model(pattern)
-        model = torch.load(fp).to(device)
+        model = torch.load(fp, map_location=device)
         logging.info("Loaded model from: {}".format(fp))
         logging.info("Model already trained with {} epochs".format(n_epochs))
     else:
         model = model_type(**config).to(device)
-        logging.info("Initialized new model of type: {}".format(fp))
+        logging.info("Initialized new model of type: {}".format(model_type))
         n_epochs = 0
 
     assert type(model) == model_type
 
     return model, n_epochs
 
-def train_loop(model, optimizer, scheduler, start_epoch, end_epoch, device, train_data_loader, train_df, do_testing,
-                test_every_n, test_data_loader, test_df, model_path, results_dd):
-    """This is the main training loop
+
+def train_loop_residuals(model, optimizer, scheduler, start_epoch, end_epoch, device, train_data_loader, train_df, do_testing,
+                            test_every_n, test_data_loader, test_df, model_path, results_dd):
+    """This is the main training loop. We want to train the model M, given emulator E such that for all (x,y) data pairs, 
+    M(x) + E(x) \approx y
 
     Parameters
     ----------
@@ -331,12 +329,13 @@ def train_loop(model, optimizer, scheduler, start_epoch, end_epoch, device, trai
         t1 = default_timer()
         train_mse = 0
         train_l2 = 0
-        for x, y, t in train_data_loader:
-            x, y, t = x.to(device), y.to(device), t.to(device)
-            # print("X SHAPE: {}, Y SHAPE: {}".format(x.shape, y.shape))
+        for x, y, t, preds in train_data_loader:
+            x, y, t, preds = x.to(device), y.to(device), t.to(device), preds.to(device)
+            # print("X SHAPE: {}, T SHAPE: {}".format(x.shape, t.shape))
 
             optimizer.zero_grad()
-            out = model(x, t)
+            out_model = model(x, t)
+            out = out_model + preds
 
             mse = MSE(out, y)
             mse.backward()
@@ -365,10 +364,11 @@ def train_loop(model, optimizer, scheduler, start_epoch, end_epoch, device, trai
             if do_testing:
                 model.eval()
                 with torch.no_grad():
-                    for x, y, t in test_data_loader:
-                        x, y, t = x.to(device), y.to(device), t.to(device)
+                    for x, y, t, preds in test_data_loader:
+                        x, y, t, preds = x.to(device), y.to(device), t.to(device), preds.to(device)
 
-                        out = model(x, t)
+                        out_model = model(x, t)
+                        out = out_model + preds
 
                         mse = MSE(out, y)
                         test_mse += mse.item()
@@ -395,14 +395,20 @@ def train_loop(model, optimizer, scheduler, start_epoch, end_epoch, device, trai
     return model
 
 
-def FNO_pretraining(args, device, batch_size=1024, learning_rate=0.001, step_size=100, gamma=0.5):
+def residual_network_training(args, device, batch_size=1024, learning_rate=0.001, step_size=100, gamma=0.5):
 
 
     results_dd = {'modes': args.freq_modes,
                     'width': args.width}
-
+    ##################################################################
+    # load emulator
+    ##################################################################
+    emulator, _ = load_or_init_model(device=torch.device('cpu'),
+                                        model_type=FNO1dComplexTime,
+                                        fp=args.emulator_fp)
+    emulator.eval()
     ################################################################
-    # read training data
+    # load training data
     ################################################################
 
     d = sio.loadmat(args.data_fp)
@@ -413,84 +419,7 @@ def FNO_pretraining(args, device, batch_size=1024, learning_rate=0.001, step_siz
                                                                             t_grid.shape,
                                                                             x_grid.shape))
 
-    train_dataset = OneStepDataSet(usol, t_grid, x_grid)
-    logging.info("Dataset: {}".format(train_dataset))
-    results_dd['pretrain_ntrain'] = len(train_dataset)
-
-    train_data_loader = torch.utils.data.DataLoader(train_dataset,
-                                                    batch_size=batch_size,
-                                                    shuffle=True)
-
-    ################################################################
-    # read testing data
-    ################################################################
-    if not args.no_test:
-
-        d_test = sio.loadmat(args.test_data_fp)
-        usol_test = d_test['output']
-        t_grid_test = d_test['t']
-        x_grid_test = d_test['x']
-
-        test_dataset = OneStepDataSet(usol_test, t_grid_test, x_grid_test)
-        logging.info("Test Dataset: {}".format(test_dataset))
-        results_dd['pretrain_ntest'] = len(test_dataset)
-
-        test_data_loader = torch.utils.data.DataLoader(test_dataset,
-                                                        batch_size=batch_size,
-                                                        shuffle=True)
-
-    ##################################################################
-    # initialize model and optimizer
-    ##################################################################
-    model_params = {'width': args.width, 'modes':args.freq_modes}
-
-    model, n_epochs = load_or_init_model(device=device,
-                                            model_type=FNO1dComplexTime,
-                                            pattern=args.pretraining_model_fp,
-                                            config=model_params)
-    results_dd.update(model_params)
-
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
-                                                    step_size=step_size,
-                                                    gamma=gamma)
-    for fake_ep in range(n_epochs):
-         scheduler.step()
-
-    ##################################################################
-    # Call training loop
-    ##################################################################
-    logging.info("Starting FNO pretraining")
-    pretrained_model = train_loop(model=model,
-                                    optimizer=optimizer,
-                                    scheduler=scheduler,
-                                    start_epoch=n_epochs,
-                                    end_epoch=args.pretraining_epochs,
-                                    device=device,
-                                    train_data_loader=train_data_loader,
-                                    train_df=args.pretraining_train_df,
-                                    do_testing=(not args.no_test),
-                                    test_every_n=50,
-                                    test_data_loader=test_data_loader,
-                                    test_df=args.pretraining_test_df,
-                                    model_path=args.pretraining_model_fp,
-                                    results_dd=results_dd)
-    return pretrained_model, results_dd
-
-def time_dependent_training(args, device, results_dd, model, batch_size=1024, learning_rate=0.001, step_size=100, gamma=0.5):
-    ################################################################
-    # read training data
-    ################################################################
-
-    d = sio.loadmat(args.data_fp)
-    usol = d['output'][:,::args.time_subsample]
-    t_grid = d['t'][:,::args.time_subsample]
-    x_grid = d['x']
-    logging.info("USOL SHAPE {}, T_GRID SHAPE: {}, X_GRID SHAPE: {}".format(usol.shape,
-                                                                            t_grid.shape,
-                                                                            x_grid.shape))
-
-    train_dataset = TimeDataSet(usol, t_grid, x_grid)
+    train_dataset = TimeDataSetResiduals(usol, t_grid, x_grid, emulator)
     logging.info("Dataset: {}".format(train_dataset))
     results_dd['ntrain'] = len(train_dataset)
 
@@ -508,7 +437,7 @@ def time_dependent_training(args, device, results_dd, model, batch_size=1024, le
         t_grid_test = d_test['t']
         x_grid_test = d_test['x']
 
-        test_dataset = TimeDataSet(usol_test, t_grid_test, x_grid_test)
+        test_dataset = TimeDataSetResiduals(usol_test, t_grid_test, x_grid_test, emulator)
         logging.info("Test Dataset: {}".format(test_dataset))
         results_dd['ntest'] = len(test_dataset)
 
@@ -516,36 +445,42 @@ def time_dependent_training(args, device, results_dd, model, batch_size=1024, le
                                                         batch_size=batch_size,
                                                         shuffle=True)
 
+
+
     ##################################################################
-    # initialize optimizer
+    # initialize model and optimizer
     ##################################################################
-    logging.info("Initializing optimizer with learning rate: {}".format(learning_rate))
+    model_params = {'width': args.width, 'modes':args.freq_modes}
+
+    model, n_epochs = load_or_init_model(device=device,
+                                            model_type=FNO1dComplexTime,
+                                            config=model_params)
+    results_dd.update(model_params)
+
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
-                                                step_size=step_size,
-                                                gamma=gamma)
-
-    results_dd['learning_rate'] = learning_rate
-
+                                                    step_size=step_size,
+                                                    gamma=gamma)
     ##################################################################
     # Call training loop
     ##################################################################
-    logging.info("Starting Time-Dependent training")
-    model = train_loop(model=model,
-                        optimizer=optimizer,
-                        scheduler=scheduler,
-                        start_epoch=0,
-                        end_epoch=args.epochs,
-                        device=device,
-                        train_data_loader=train_data_loader,
-                        train_df=args.train_df,
-                        do_testing=True,
-                        test_every_n=25,
-                        test_data_loader=test_data_loader,
-                        test_df=args.test_df,
-                        model_path=args.model_fp,
-                        results_dd=results_dd)
+    logging.info("Starting FNO training")
+    model = train_loop_residuals(model=model,
+                                    optimizer=optimizer,
+                                    scheduler=scheduler,
+                                    start_epoch=0,
+                                    end_epoch=args.epochs,
+                                    device=device,
+                                    train_data_loader=train_data_loader,
+                                    train_df=args.train_df,
+                                    do_testing=(not args.no_test),
+                                    test_every_n=50,
+                                    test_data_loader=test_data_loader,
+                                    test_df=args.test_df,
+                                    model_path=args.model_fp,
+                                    results_dd=results_dd)
     return model, results_dd
+
 
 def main(args):
     # Figure out CUDA
@@ -553,17 +488,16 @@ def main(args):
     logging.info("Running computation on device: {}".format(device))
 
     ################################################################
-    #  Run pre-training
-    ################################################################
-    model, results_dd = FNO_pretraining(args, device)
-
-    ################################################################
-    #  Time-dependent training
+    #  Set up and run training
     ################################################################
 
     lr = (10 ** args.lr_exp)
 
-    model, results_dd = time_dependent_training(args, device, results_dd, model, learning_rate=lr)
+    model, results_dd = residual_network_training(args, device)
+
+    ################################################################
+    # Report results
+    ################################################################
 
     if args.results_fp is not None:
         write_result_to_file(args.results_fp, **results_dd)
@@ -582,14 +516,11 @@ if __name__ == '__main__':
     parser.add_argument('--results_fp')
     parser.add_argument('--test_data_fp')
     parser.add_argument('--model_fp')
+    parser.add_argument('--emulator_fp')
     parser.add_argument('--train_df')
     parser.add_argument('--test_df')
-    parser.add_argument('--pretraining_model_fp')
-    parser.add_argument('--pretraining_train_df')
-    parser.add_argument('--pretraining_test_df')
     parser.add_argument('--lr_exp', type=int, default=-3)
     parser.add_argument('--epochs', type=int)
-    parser.add_argument('--pretraining_epochs', type=int)
     parser.add_argument('--freq_modes', type=int, default=16)
     parser.add_argument('--width', type=int, default=64)
     parser.add_argument('--time_subsample', type=int, default=1)
