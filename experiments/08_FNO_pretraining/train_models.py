@@ -145,8 +145,6 @@ class TimeDataSet(torch.utils.data.Dataset):
         self.x_grid = torch.tensor(x_grid, dtype=torch.float).view(-1, 1)
         self.n_tsteps = self.t.shape[0] - 1
         self.n_batches = self.X.shape[0]
-#         self.time_indices = [ (i,j)  for j in range(self.n_tsteps) for i in range(j)]
-#         self.n_t_pairs = len(self.time_indices)
         self.dataset_len = self.n_tsteps * self.n_batches
 
     def make_x_train(self, x_in):
@@ -159,7 +157,6 @@ class TimeDataSet(torch.utils.data.Dataset):
         t_idx = int(idx % self.n_tsteps) + 1
         idx = int(idx // self.n_tsteps)
         batch_idx = int(idx % self.n_batches)
-#         start_time_idx, end_time_idx = self.time_indices[t_idx]
         x = self.make_x_train(self.X[batch_idx, 0]) #.reshape(self.output_shape)
         y = self.X[batch_idx, t_idx] #.reshape(self.output_shape)
         t = self.t[t_idx]
@@ -183,8 +180,6 @@ class OneStepDataSet(torch.utils.data.Dataset):
         self.x_grid = torch.tensor(x_grid, dtype=torch.float).view(-1, 1)
         self.n_tsteps = self.t.shape[0] - 1
         self.n_batches = self.X.shape[0]
-#         self.time_indices = [ (i,j)  for j in range(self.n_tsteps) for i in range(j)]
-#         self.n_t_pairs = len(self.time_indices)
         self.dataset_len = self.n_tsteps * self.n_batches
 
     def make_x_train(self, x_in):
@@ -197,7 +192,6 @@ class OneStepDataSet(torch.utils.data.Dataset):
         t_idx = int(idx % self.n_tsteps) + 1
         idx = int(idx // self.n_tsteps)
         batch_idx = int(idx % self.n_batches)
-#         start_time_idx, end_time_idx = self.time_indices[t_idx]
         x = self.make_x_train(self.X[batch_idx, t_idx - 1]) #.reshape(self.output_shape)
         y = self.X[batch_idx, t_idx] #.reshape(self.output_shape)
         t = self.t[1]

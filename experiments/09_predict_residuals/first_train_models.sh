@@ -1,10 +1,10 @@
 #!/bin/bash
 
-#SBATCH --job-name=00_time_dep
+#SBATCH --job-name=00_residual
 #SBATCH --time=4:00:00
-#SBATCH --partition=contrib-gpu-long
-#SBATCH --output=experiments/08_FNO_pretraining/logs/00_time_dep.out
-#SBATCH --error=experiments/08_FNO_pretraining/logs/00_time_dep.err
+#SBATCH --partition=contrib-gpu
+#SBATCH --output=experiments/09_predict_residuals/logs/00_residual.out
+#SBATCH --error=experiments/09_predict_residuals/logs/00_residual.err
 #SBATCH --exclude=gpu-g16,gpu-g28,gpu-g29,gpu-g38
 
 
@@ -17,16 +17,13 @@ source  ~/conda_init.sh
 cd ~/projects/fourier_neural_operator/
 conda activate fourier_neural_operator
 
-python -m experiments.08_FNO_pretraining.train_models \
---data_fp /share/data/willett-group/meliao/data/2021-06-24_NLS_data_04_train.mat \
---test_data_fp /share/data/willett-group/meliao/data/2021-06-24_NLS_data_04_test.mat \
---model_fp experiments/08_FNO_pretraining/models/00_time_dep_ep_{} \
---pretraining_model_fp experiments/08_FNO_pretraining/models/00_pretrain_ep_{} \
---train_df experiments/08_FNO_pretraining/results/00_time_dep_train.txt \
---pretraining_train_df experiments/08_FNO_pretraining/results/00_pretrain_train.txt \
---pretraining_test_df experiments/08_FNO_pretraining/results/00_pretrain_test.txt \
---test_df experiments/08_FNO_pretraining/results/00_time_dep_test.txt \
+python -m experiments.09_predict_residuals.train_models \
+--data_fp data/2021-06-24_NLS_data_04_train.mat \
+--test_data_fp data/2021-06-24_NLS_data_04_test.mat \
+--emulator_fp experiments/08_FNO_pretraining/models/00_pretrain_ep_1000 \
+--model_fp experiments/09_predict_residuals/models/00_residual_ep_{} \
+--train_df experiments/09_predict_residuals/results/00_residual_train.txt \
+--test_df experiments/09_predict_residuals/results/00_residual_test.txt \
 --freq_modes 8 \
 --time_subsample 1 \
---epochs 1000 \
---pretraining_epochs 1000
+--epochs 500
