@@ -545,7 +545,7 @@ def time_dependent_training(args, device, results_dd, model, batch_size=1024, le
                         test_df=args.test_df,
                         model_path=args.model_fp,
                         results_dd=results_dd)
-    return model, resutlts_dd
+    return model, results_dd
 
 def main(args):
     # Figure out CUDA
