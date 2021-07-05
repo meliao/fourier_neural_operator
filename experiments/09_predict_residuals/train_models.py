@@ -456,6 +456,8 @@ def residual_network_training(args, device, batch_size=1024, learning_rate=0.001
                                             model_type=FNO1dComplexTime,
                                             config=model_params)
     results_dd.update(model_params)
+    logging.info("Using learning rate {}".format(learning_rate))
+    results_dd['learning_rate'] = learning_rate
 
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
