@@ -14,7 +14,7 @@ definitions:
     !SLURMQueue
       jobs_folder: experiments/09_predict_residuals/jobs
       job_name_key: job_name
-#      fake_submission: true
+  #    fake_submission: true
 
   constants:
     data_loc: &DATA_LOC "/share/data/willett-group/meliao/data/2021-06-24_NLS_data_04_train.mat"
@@ -23,6 +23,7 @@ definitions:
     pretrained_model_fp: &PRETRAINED_FP "experiments/09_predict_residuals/models/00_pretrain_ep_{}"
     results_fp: &RESULTS_FP "~/projects/fourier_neural_operator/experiments/09_predict_residuals/experiment_results.txt"
     train_df_dir: &DF_DIR "~/projects/fourier_neural_operator/experiments/09_predict_residuals/results"
+    emulator_fp: &EMULATOR_FP "experiments/08_FNO_pretraining/models/00_pretrain_ep_1000"
 
 arguments:
 
@@ -32,6 +33,7 @@ arguments:
   - !Scalar { name: epochs, value: 1000, prefix: "--epochs" }
   - !Scalar { name: time_subsample, value: 1, prefix: "--time_subsample" }
   - !Scalar { name: freq_modes, value: 8, prefix: "--freq_modes" }
+  - !Scalar { name: emulator_fp, value: *EMULATOR_FP, prefix: "--emulator_fp" }
 
   - !Range
     name: lr_exp

@@ -495,7 +495,7 @@ def main(args):
 
     lr = (10 ** args.lr_exp)
 
-    model, results_dd = residual_network_training(args, device)
+    model, results_dd = residual_network_training(args, device, learning_rate=lr)
 
     ################################################################
     # Report results
@@ -521,7 +521,7 @@ if __name__ == '__main__':
     parser.add_argument('--emulator_fp')
     parser.add_argument('--train_df')
     parser.add_argument('--test_df')
-    parser.add_argument('--lr_exp', type=int, default=-3)
+    parser.add_argument('--lr_exp', type=float, default=-3)
     parser.add_argument('--epochs', type=int)
     parser.add_argument('--freq_modes', type=int, default=16)
     parser.add_argument('--width', type=int, default=64)
