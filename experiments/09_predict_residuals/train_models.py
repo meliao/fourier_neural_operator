@@ -395,7 +395,7 @@ def train_loop_residuals(model, optimizer, scheduler, start_epoch, end_epoch, de
     return model
 
 
-def residual_network_training(args, device, batch_size=1024, learning_rate=0.001, step_size=100, gamma=0.5):
+def residual_network_training(args, device, batch_size=1024, learning_rate=0.001, weight_decay=0., step_size=100, gamma=0.5):
 
 
     results_dd = {'modes': args.freq_modes,
@@ -456,10 +456,12 @@ def residual_network_training(args, device, batch_size=1024, learning_rate=0.001
                                             model_type=FNO1dComplexTime,
                                             config=model_params)
     results_dd.update(model_params)
-    logging.info("Using learning rate {}".format(learning_rate))
+    logging.info("Using learning rate {} and weight decay {}".format(learning_rate, weight_decay))
     results_dd['learning_rate'] = learning_rate
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = torch.optim.Adam(model.parameters(), 
+                                    lr=learning_rate, 
+                                    weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
                                                     step_size=step_size,
                                                     gamma=gamma)
@@ -494,8 +496,12 @@ def main(args):
     ################################################################
 
     lr = (10 ** args.lr_exp)
+    if args.weight_decay_exp is not None:    
+        weight_decay = (10 ** args.weight_decay_exp)
+    else:
+        weight_decay = 0.
 
-    model, results_dd = residual_network_training(args, device, learning_rate=lr)
+    model, results_dd = residual_network_training(args, device, learning_rate=lr, weight_decay=weight_decay)
 
     ################################################################
     # Report results
@@ -521,6 +527,7 @@ if __name__ == '__main__':
     parser.add_argument('--emulator_fp')
     parser.add_argument('--train_df')
     parser.add_argument('--test_df')
+    parser.add_argument('--weight_decay_exp', type=float, default=None)
     parser.add_argument('--lr_exp', type=float, default=-3)
     parser.add_argument('--epochs', type=int)
     parser.add_argument('--freq_modes', type=int, default=16)
