@@ -282,7 +282,7 @@ def load_or_init_model(device, model_type, fp=None, pattern=None, config=None):
 
 def train_loop_residuals(model, optimizer, scheduler, start_epoch, end_epoch, device, train_data_loader, train_df, do_testing,
                             test_every_n, test_data_loader, test_df, model_path, results_dd):
-    """This is the main training loop. We want to train the model M, given emulator E such that for all (x,y) data pairs, 
+    """This is the main training loop. We want to train the model M, given emulator E such that for all (x,y) data pairs,
     M(x) + E(x) \approx y
 
     Parameters
@@ -434,6 +434,9 @@ def residual_network_training(args, device, batch_size=1024, learning_rate=0.001
 
         d_test = sio.loadmat(args.test_data_fp)
         usol_test = d_test['output']
+
+        # This is a quick hack to get the really bad test case out of the test set
+        usol_test = np.delete(usol_test, [59], axis=0)
         t_grid_test = d_test['t']
         x_grid_test = d_test['x']
 
@@ -458,9 +461,10 @@ def residual_network_training(args, device, batch_size=1024, learning_rate=0.001
     results_dd.update(model_params)
     logging.info("Using learning rate {} and weight decay {}".format(learning_rate, weight_decay))
     results_dd['learning_rate'] = learning_rate
+    results_dd['l2_regularization'] = weight_decay
 
-    optimizer = torch.optim.Adam(model.parameters(), 
-                                    lr=learning_rate, 
+    optimizer = torch.optim.Adam(model.parameters(),
+                                    lr=learning_rate,
                                     weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
                                                     step_size=step_size,
@@ -496,7 +500,7 @@ def main(args):
     ################################################################
 
     lr = (10 ** args.lr_exp)
-    if args.weight_decay_exp is not None:    
+    if args.weight_decay_exp is not None:
         weight_decay = (10 ** args.weight_decay_exp)
     else:
         weight_decay = 0.
