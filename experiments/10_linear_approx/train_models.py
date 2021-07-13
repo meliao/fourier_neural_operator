@@ -154,8 +154,19 @@ class TimeDataSetLinearResiduals(torch.utils.data.Dataset):
         dx = 2 * np.pi / n_gridpoints
         w_numbers = 2 * np.pi * torch.fft.fftfreq(n_gridpoints, d=dx)
         self.wave_numbers = torch.square(w_numbers)
+        self.make_linear_part()
 
 
+
+    def make_linear_part(self):
+
+        lin_part = torch.zeros_like(self.X)
+        for b in range(self.n_batches):
+            ic_b = self.X[b,0]
+            for t_step, t_val in enumerate(self.t):
+                # print(t_step, t_val)
+                lin_part[b,t_step] = self.linear_part(ic_b, t_val)
+        self.linear_part_arr = lin_part
 
     def linear_part(self, x_0, t):
         # x_0 has shape (self.X.shape[-1],)
@@ -194,7 +205,7 @@ class TimeDataSetLinearResiduals(torch.utils.data.Dataset):
         x = self.make_x_train(self.X[batch_idx, 0], single_batch=True) #.reshape(self.output_shape)
         y = self.X[batch_idx, t_idx] #.reshape(self.output_shape)
         t = self.t[t_idx]
-        lin_part = self.linear_part(self.X[batch_idx, 0], t)
+        lin_part = self.linear_part_arr[batch_idx, t_idx]
         return x,y,t,lin_part
 
     def __len__(self):
@@ -204,6 +215,8 @@ class TimeDataSetLinearResiduals(torch.utils.data.Dataset):
         return "TimeDataSetLinearResiduals with length {}, n_tsteps {}, n_batches {}".format(self.dataset_len,
                                                                                             self.n_tsteps,
                                                                                             self.n_batches)
+
+
 def write_result_to_file(fp, missing_str='', **trial):
     """Write a line to a tab-separated file saving the results of a single
         trial.
