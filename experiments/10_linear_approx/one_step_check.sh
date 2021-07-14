@@ -17,7 +17,7 @@ conda activate fourier_neural_operator
 
 
 python -m experiments.10_linear_approx.train_models \
---data_fp /share/data/willett-group/meliao/data/2021-07-144_NLS_data_05_train.mat \
+--data_fp /share/data/willett-group/meliao/data/2021-07-14_NLS_data_05_train.mat \
 --test_data_fp /share/data/willett-group/meliao/data/2021-07-14_NLS_data_05_test.mat \
 --epochs 1000 \
 --time_subsample 1 \
