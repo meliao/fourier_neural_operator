@@ -285,6 +285,16 @@ def main(args):
     if not os.path.isdir(args.plots_dir):
         os.mkdir(args.plots_dir)
 
+    df_results = pd.read_table(args.df_results)
+    plt.plot(df_results.learning_rate, df_results.test_mse, '.')
+    plt.xlabel("Learning Rate", size=14)
+    plt.xscale('log')
+    plt.ylabel("Test MSE", size=14)
+    plt.tight_layout()
+    fp_0 = os.path.join(args.plots_dir, 'results_test_MSE.png')
+    plt.savefig(fp_0)
+    plt.clf()
+
     df_pretrain_train = pd.read_table(args.df_pretrain_train)
     df_pretrain_test = pd.read_table(args.df_pretrain_test)
 
@@ -330,9 +340,9 @@ def main(args):
     pretrained_errors = pretrained_dd['errors']['from_ic']
     pretrained_comp_errors = pretrained_dd['errors']['comp']
 
-    errors_dd_0 = {'FNO baseline': baseline_errors[:, :15],
-            'Time-dependent model': time_dep_errors[:, :15],
-            'Pretrained FNO from IC': pretrained_errors[:, :15],
+    errors_dd_0 = {'FNO': baseline_errors[:, :15],
+            'TD-FNO': time_dep_errors[:, :15],
+            'TD-FNO (Pretrained)': pretrained_errors[:, :15],
             # 'Pretrained FNO composition': pretrained_comp_errors[:, :15]
             # 'Time-dependent composed': time_dep_comp_errors
             }
@@ -347,16 +357,16 @@ def main(args):
     time_dep_outlier_removal = np.delete(time_dep_errors, [59], axis=0)
     pretrained_outlier_removal = np.delete(pretrained_errors, [59], axis=0)
     pretrained_comp_outlier_removal = np.delete(pretrained_comp_errors, [59], axis=0)
-    errors_dd_1 = {'FNO baseline': baseline_outlier_removal,
-                    'Time-dependent model': time_dep_outlier_removal,
-                    'Pretrained FNO from IC': pretrained_outlier_removal,
+    errors_dd_1 = {'FNO': baseline_outlier_removal,
+                    'TD-FNO': time_dep_outlier_removal,
+                    'TD-FNO (Pretrained)': pretrained_outlier_removal,
                     # 'Pretrained FNO composition': pretrained_comp_outlier_removal
                     }
     print(time_dep_outlier_removal.shape)
     fp_outlier_removal = os.path.join(args.plots_dir, 'time_errors_outlier_removal.png')
     plot_time_errors(errors_dd_1,
                         t_grid[:, :-1],
-                        'FNO Baseline vs. Time-Dependent Models',
+                        'FNO Baseline vs. Time-Dependent Model',
                         fp_outlier_removal)
 
     logging.info("Finished")
@@ -365,15 +375,16 @@ def main(args):
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_fp', default="~/projects/fourier_neural_operator/data/2021-06-24_NLS_data_04_test.mat")
-    parser.add_argument('--df_pretrain_train', default="~/projects/fourier_neural_operator/experiments/08_FNO_pretraining/results/00_pretrain_train.txt")
-    parser.add_argument('--df_pretrain_test', default="~/projects/fourier_neural_operator/experiments/08_FNO_pretraining/results/00_pretrain_test.txt")
-    parser.add_argument('--df_time_dep_train', default="~/projects/fourier_neural_operator/experiments/08_FNO_pretraining/results/00_time_dep_train.txt")
-    parser.add_argument('--df_time_dep_test', default="~/projects/fourier_neural_operator/experiments/08_FNO_pretraining/results/00_time_dep_test.txt")
-    parser.add_argument('--baseline_model', default="/home/owen/projects/fourier_neural_operator/experiments/07_long_time_dependent_runs/models/01_baseline_ep_1000")
-    parser.add_argument('--time_dep_model', default="/home/owen/projects/fourier_neural_operator/experiments/07_long_time_dependent_runs/models/00_time_dep_ep_1000")
-    parser.add_argument('--pretrained_model', default="/home/owen/projects/fourier_neural_operator/experiments/08_FNO_pretraining/models/00_time_dep_ep_1000")
-    parser.add_argument('--plots_dir', default="/home/owen/projects/fourier_neural_operator/experiments/08_FNO_pretraining/plots/")
+    parser.add_argument('--data_fp', default="/local/meliao/projects/fourier_neural_operator/data/2021-06-24_NLS_data_04_test.mat")
+    parser.add_argument('--df_pretrain_train', default="/local/meliao/projects/fourier_neural_operator/experiments/08_FNO_pretraining/results/00_pretrain_train.txt")
+    parser.add_argument('--df_pretrain_test', default="/local/meliao/projects/fourier_neural_operator/experiments/08_FNO_pretraining/results/00_pretrain_test.txt")
+    parser.add_argument('--df_time_dep_train', default="/local/meliao/projects/fourier_neural_operator/experiments/08_FNO_pretraining/results/lr_exp_-2_train.txt")
+    parser.add_argument('--df_time_dep_test', default="/local/meliao/projects/fourier_neural_operator/experiments/08_FNO_pretraining/results/lr_exp_-2_test.txt")
+    parser.add_argument('--df_results', default="/local/meliao/projects/fourier_neural_operator/experiments/08_FNO_pretraining/experiment_results.txt")
+    parser.add_argument('--baseline_model', default="/local/meliao/projects/fourier_neural_operator/experiments/07_long_time_dependent_runs/models/01_baseline_ep_1000")
+    parser.add_argument('--time_dep_model', default="/local/meliao/projects/fourier_neural_operator/experiments/07_long_time_dependent_runs/models/00_time_dep_ep_1000")
+    parser.add_argument('--pretrained_model', default="/local/meliao/projects/fourier_neural_operator/experiments/08_FNO_pretraining/models/lr_exp_-2_ep_1000")
+    parser.add_argument('--plots_dir', default="/local/meliao/projects/fourier_neural_operator/experiments/08_FNO_pretraining/plots/")
 
     args = parser.parse_args()
     fmt = "%(asctime)s:FNO: %(levelname)s - %(message)s"

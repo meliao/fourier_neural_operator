@@ -1,0 +1,13 @@
+python ~/projects/badger/src/check_logs.py \
+-jobs_folder ~/projects/fourier_neural_operator/experiments/10_linear_approx/jobs \
+-logs_folder ~/projects/fourier_neural_operator/experiments/10_linear_approx/logs \
+-logs_pattern "(.*).err" \
+-finish_token "Finished" \
+--name_subfield_regexp "residuals_lr_exp_(.*)_l2_exp_(.*)" \
+--name_subfield lr_exp 1 \
+--name_subfield l2_exp 2 \
+-output experiments/10_linear_approx/00_log_checks.txt \
+--clean_target "experiments/10_linear_approx/logs/residuals_lr_exp_{lr_exp}_l2_exp_{l2_exp}.*" \
+--clean_target "experiments/10_linear_approx/results/residuals_lr_exp_{lr_exp}_l2_exp_{l2_exp}_t*" \
+--resubmit \
+-parsimony 8
