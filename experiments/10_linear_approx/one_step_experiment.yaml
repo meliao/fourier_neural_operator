@@ -21,7 +21,7 @@ definitions:
     test_data_loc: &TEST_DATA_LOC "/share/data/willett-group/meliao/data/2021-07-14_NLS_data_05_test.mat"
     models_dir: &MODELS_DIR "~/projects/fourier_neural_operator/experiments/10_linear_approx/models"
     # pretrained_model_fp: &PRETRAINED_FP "experiments/10_linear_approx/models/00_pretrain_ep_{}"
-    results_fp: &RESULTS_FP "~/projects/fourier_neural_operator/experiments/10_linear_approx/experiment_results.txt"
+    results_fp: &RESULTS_FP "~/projects/fourier_neural_operator/experiments/10_linear_approx/one_step_experiment_results.txt"
     train_df_dir: &DF_DIR "~/projects/fourier_neural_operator/experiments/10_linear_approx/results"
     emulator_fp: &EMULATOR_FP "experiments/08_FNO_pretraining/models/00_pretrain_ep_1000"
 
