@@ -135,12 +135,12 @@ class NLS_Residual_Loss:
     NLS: i u_t + 1 / 2 * u_xx + |u|^2 u = 0
 
     """
-    def __init__(self, delta_x, n_grid_points, batch_size):
+    def __init__(self, delta_x, n_grid_points, batch_size, device):
         self.delta_x = delta_x
         self.n_grid_points = n_grid_points
         self.batch_size = batch_size
-        self.I = torch.eye(self.batch_size)
-        self.imag = torch.tensor(0+1j, dtype=torch.cfloat).repeat((self.batch_size, self.n_grid_points))
+        self.I = torch.eye(self.batch_size).to(device)
+        self.imag = torch.tensor(0+1j, dtype=torch.cfloat).repeat((self.batch_size, self.n_grid_points)).to(device)
 
 
     def time_derivative(self, model, x, t):
