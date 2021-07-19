@@ -1,0 +1,68 @@
+---
+definitions:
+  command: "python -m experiments.11_PDE_Loss.train_models_discrete_PDE_loss"
+  template: train.jinja
+
+  copy_to_item: true
+
+  default_arguments:
+    job_walltime: "4:00:00"
+    logs_folder: experiments/11_PDE_Loss/logs
+    partition: "contrib-gpu"
+
+  submission:
+    !SLURMQueue
+      jobs_folder: experiments/11_PDE_Loss/jobs
+      job_name_key: job_name
+#      fake_submission: true
+
+  constants:
+    data_loc: &DATA_LOC "/share/data/willett-group/meliao/data/2021-06-24_NLS_data_04_train.mat"
+    test_data_loc: &TEST_DATA_LOC "/share/data/willett-group/meliao/data/2021-06-24_NLS_data_04_test.mat"
+    models_dir: &MODELS_DIR "~/projects/fourier_neural_operator/experiments/11_PDE_Loss/models"
+    # pretrained_model_fp: &PRETRAINED_FP "experiments/11_PDE_Loss/models/00_pretrain_ep_{}"
+    results_fp: &RESULTS_FP "~/projects/fourier_neural_operator/experiments/11_PDE_Loss/pde_loss_lambda_experiment_results.txt"
+    train_df_dir: &DF_DIR "~/projects/fourier_neural_operator/experiments/11_PDE_Loss/results"
+    emulator_fp: &EMULATOR_FP "experiments/08_FNO_pretraining/models/00_pretrain_ep_1000"
+
+arguments:
+
+  - !Scalar { name: data_fp, value: *DATA_LOC, prefix: "--data_fp" }
+  - !Scalar { name: test_data_fp, value: *TEST_DATA_LOC, prefix: "--test_data_fp" }
+  - !Scalar { name: results_fp, value: *RESULTS_FP, prefix: "--results_fp" }
+  - !Scalar { name: epochs, value: 1000, prefix: "--epochs" }
+  - !Scalar { name: time_subsample, value: 1, prefix: "--time_subsample" }
+  - !Scalar { name: freq_modes, value: 8, prefix: "--freq_modes" }
+  - !Scalar { name: lr_exp, value: "-3", prefix: "--lr_exp" }
+
+  - !Range
+    name: pde_lambda
+    values: [10, 1, 0.1, 0.01, 0.001]
+    prefix: "--pde_loss_lambda"
+    metadata_rules: [ !SaveValueInMetadata { path: pde_lambda } ]
+
+
+  - !ArgumentFromMetadata
+    name: train_df
+    prefix: "--train_df"
+    prepend: *DF_DIR
+    format_rule: "discrete_pde_loss_lambda_{pde_lambda}_train.txt"
+    sources: [ {path: pde_lambda, destination: pde_lambda}]
+
+  - !ArgumentFromMetadata
+    name: test_df
+    prefix: "--test_df"
+    prepend: *DF_DIR
+    format_rule: "discrete_pde_loss_lambda_{pde_lambda}_test.txt"
+    sources: [ {path: pde_lambda, destination: pde_lambda}]
+  - !ArgumentFromMetadata
+    name: model_fp
+    prefix: "--model_fp"
+    prepend: *MODELS_DIR
+    format_rule: "discrete_pde_loss_lambda_{pde_lambda}_ep_{{}}"
+    sources: [ {path: pde_lambda, destination: pde_lambda}]
+
+  - !ArgumentFromMetadata
+    name: job_name
+    format_rule: "discrete_pde_loss_lambda_{pde_lambda}"
+    sources: [ {path: pde_lambda, destination: pde_lambda}]
