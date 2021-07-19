@@ -144,7 +144,7 @@ class NLS_Residual_Loss:
 
 
     def time_derivative(self, model, x, t):
-        jac_t = torch.autograd.functional.jacobian(lambda t: model(x,t), t, create_graph=True)
+        jac_t = torch.autograd.functional.jacobian(lambda t: model(x,t), t, create_graph=True, vectorize=False)
         # (batch_size x grid_size x batch_size) * (batch_size x batch_size) -> (batch_size x grid_size)
         return torch.einsum('bgb,bb->bg', jac_t, self.I)
 
@@ -162,12 +162,24 @@ class NLS_Residual_Loss:
         return self.NLS_residual(model, x, t)
 
     def NLS_residual(self, model, x, t):
+        t0 = default_timer()
         u = model(x,t)
+        t1 = default_timer()
+        print("Forward pass in {:.4f}".format(t1-t0))
 
+        t0 = default_timer()
         u_abs = torch.mul(u, torch.square(torch.abs(u)))
+        t1 = default_timer()
+        print("PDE Loss Nonlin Term in {:.4f}".format(t1-t0))
+        t0 = default_timer()
         u_t = self.time_derivative(model, x, t)
-        u_xx = self.spatial_discrete_derivatives(u)
+        t1 = default_timer()
+        print("PDE Loss autodiff u_t term in {:.4f}".format(t1-t0))
 
+        t0 = default_timer()
+        u_xx = self.spatial_discrete_derivatives(u)
+        t1 = default_timer()
+        print("PDE Loss lin term in {:.4f}".format(t1-t0))
         resid = torch.mul(self.imag, u_t) + torch.mul(u_xx, 1/2) + u_abs
 
         return torch.abs(resid).sum()        

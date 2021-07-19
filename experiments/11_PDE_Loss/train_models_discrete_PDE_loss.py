@@ -375,7 +375,7 @@ def train_loop(model, optimizer, scheduler, pde_loss_obj, pde_loss_lambda, start
             optimizer.step()
 
             train_mse += mse.item()
-            train_pde_residual += train_pde_residual.item()
+            train_pde_residual += pde_resid
 
         scheduler.step()
         # model.eval()
@@ -416,7 +416,7 @@ def train_loop(model, optimizer, scheduler, pde_loss_obj, pde_loss_lambda, start
 
                 test_mse /= len(test_data_loader)
                 test_l2_norm_error /= len(test_data_loader)
-                test_pde_residual /= len(test_pde_residual)
+                test_pde_residual /= len(test_data_loader)
 
                 test_dd['test_mse'] = test_mse
                 test_dd['test_l2_normalized_error'] = test_l2_norm_error
@@ -451,7 +451,7 @@ def residual_network_training(args, device, batch_size=1024, learning_rate=0.001
                                                                             t_grid.shape,
                                                                             x_grid.shape))
 
-    train_dataset = TimeDataSetLinearResiduals(usol, t_grid, x_grid)
+    train_dataset = TimeDataSet(usol, t_grid, x_grid)
     logging.info("Dataset: {}".format(train_dataset))
     results_dd['ntrain'] = len(train_dataset)
 
@@ -472,7 +472,7 @@ def residual_network_training(args, device, batch_size=1024, learning_rate=0.001
         t_grid_test = d_test['t']
         x_grid_test = d_test['x']
 
-        test_dataset = TimeDataSetLinearResiduals(usol_test, t_grid_test, x_grid_test)
+        test_dataset = TimeDataSet(usol_test, t_grid_test, x_grid_test)
         logging.info("Test Dataset: {}".format(test_dataset))
         results_dd['ntest'] = len(test_dataset)
 
@@ -514,7 +514,7 @@ def residual_network_training(args, device, batch_size=1024, learning_rate=0.001
     # Call training loop
     ##################################################################
     logging.info("Starting FNO training")
-    model = train_loop_residuals(model=model,
+    model = train_loop(model=model,
                                     optimizer=optimizer,
                                     scheduler=scheduler,
                                     pde_loss_obj=pde_loss_obj,
@@ -525,7 +525,7 @@ def residual_network_training(args, device, batch_size=1024, learning_rate=0.001
                                     train_data_loader=train_data_loader,
                                     train_df=args.train_df,
                                     do_testing=(not args.no_test),
-                                    test_every_n=50,
+                                    test_every_n=args.test_every_n,
                                     test_data_loader=test_data_loader,
                                     test_df=args.test_df,
                                     model_path=args.model_fp,
@@ -548,7 +548,12 @@ def main(args):
     else:
         weight_decay = 0.
 
-    model, results_dd = residual_network_training(args, device, learning_rate=lr, weight_decay=weight_decay)
+    if args.pde_loss_lambda is not None:
+        batch_size = 512
+    else:
+        batch_size = 1024
+
+    model, results_dd = residual_network_training(args, device, learning_rate=lr, weight_decay=weight_decay, batch_size=batch_size)
 
     ################################################################
     # Report results
@@ -581,6 +586,7 @@ if __name__ == '__main__':
     parser.add_argument('--width', type=int, default=64)
     parser.add_argument('--time_subsample', type=int, default=1)
     parser.add_argument('--no_test', default=False, action='store_true')
+    parser.add_argument('--test_every_n', type=int, default=50)
 
     args = parser.parse_args()
     fmt = "%(asctime)s:FNO: %(levelname)s - %(message)s"
